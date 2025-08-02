@@ -33,13 +33,13 @@ const Logo = styled.div`
   }
   
   h1 {
-    color: #333;
+    color: #ffffff;
     font-size: 28px;
     margin: 0;
   }
   
   p {
-    color: #666;
+    color: #ccc;
     margin-top: 5px;
   }
 `;

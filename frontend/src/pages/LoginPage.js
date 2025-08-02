@@ -33,7 +33,7 @@ const Logo = styled.div`
   }
   
   h1 {
-    color: #333;
+    color: #ffffff;
     font-size: 28px;
     margin: 0;
   }
