@@ -1,0 +1,447 @@
+const { exec } = require('child_process');
+const util = require('util');
+const path = require('path');
+const fs = require('fs-extra');
+const { Video } = require('../models');
+
+const execPromise = util.promisify(exec);
+
+class YtdlpService {
+  constructor() {
+    this.downloadsPath = path.join(__dirname, '..', '..', 'videos', 'downloads');
+    this.metadataPath = path.join(__dirname, '..', '..', 'videos', 'metadata');
+    
+    // Garante que os diretórios existem
+    fs.ensureDirSync(this.downloadsPath);
+    fs.ensureDirSync(this.metadataPath);
+  }
+
+  // Busca informações do vídeo/playlist sem baixar usando comando direto
+  async getInfo(url) {
+    console.log('🔍 Iniciando busca de informações para:', url);
+    
+    try {
+      // Verifica se é playlist e ajusta o comando
+      const isPlaylistUrl = url.includes('playlist') || url.includes('list=');
+      
+      if (isPlaylistUrl) {
+        console.log('📋 Detectada URL de playlist, usando método otimizado...');
+        return await this.getPlaylistInfo(url);
+      } else {
+        console.log('🎥 Detectada URL de vídeo único...');
+        return await this.getVideoInfo(url);
+      }
+    } catch (error) {
+      console.error('❌ Erro detalhado ao buscar informações:', error.message);
+      console.error('🔗 URL problemática:', url);
+      throw new Error(`Não foi possível obter informações: ${error.message || 'Erro desconhecido'}`);
+    }
+  }
+
+  // Método específico para obter informações de vídeo único
+  async getVideoInfo(url) {
+    try {
+      console.log('🚀 Usando comando direto yt-dlp para vídeo...');
+      
+      const { stdout } = await execPromise(`yt-dlp --dump-json --no-warnings "${url}"`, {
+        maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+      });
+      
+      if (!stdout || stdout.trim() === '') {
+        throw new Error('YT-DLP retornou saída vazia');
+      }
+
+      const info = JSON.parse(stdout.trim());
+      console.log('✅ Informações do vídeo obtidas com sucesso!');
+      return info;
+    } catch (error) {
+      throw new Error(`Erro ao obter informações do vídeo: ${error.message}`);
+    }
+  }
+
+  // Método específico para obter informações de playlist
+  async getPlaylistInfo(url) {
+    try {
+      console.log('🚀 Usando comando otimizado para playlist...');
+      
+      // Primeiro, obtém informações básicas da playlist
+      const { stdout: playlistStdout } = await execPromise(
+        `yt-dlp --dump-json --flat-playlist --no-warnings "${url}"`, 
+        { maxBuffer: 1024 * 1024 * 50 } // 50MB buffer para playlists grandes
+      );
+      
+      if (!playlistStdout || playlistStdout.trim() === '') {
+        throw new Error('YT-DLP retornou saída vazia para playlist');
+      }
+
+      // Para playlists, o yt-dlp pode retornar múltiplas linhas JSON
+      const lines = playlistStdout.trim().split('\n').filter(line => line.trim());
+      
+      let playlistInfo = null;
+      const entries = [];
+
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line);
+          
+          if (parsed._type === 'playlist') {
+            // Esta é a informação principal da playlist
+            playlistInfo = parsed;
+          } else if (parsed._type === 'url' || parsed.id) {
+            // Esta é uma entrada da playlist
+            entries.push({
+              id: parsed.id,
+              title: parsed.title || `Vídeo ${entries.length + 1}`,
+              url: parsed.url || `https://www.youtube.com/watch?v=${parsed.id}`,
+              duration: parsed.duration || 0,
+              thumbnail: parsed.thumbnail || parsed.thumbnails?.[0]?.url || ''
+            });
+          }
+        } catch (parseError) {
+          console.warn('⚠️ Linha JSON inválida ignorada:', parseError.message);
+        }
+      }
+
+      // Se não conseguiu obter informações da playlist, cria uma estrutura básica
+      if (!playlistInfo) {
+        const urlParams = new URLSearchParams(url.split('?')[1]);
+        const playlistId = urlParams.get('list');
+        
+        playlistInfo = {
+          _type: 'playlist',
+          id: playlistId || 'unknown',
+          title: `Playlist ${playlistId || 'Desconhecida'}`,
+          entries: entries
+        };
+      } else {
+        // Garante que as entries estão no formato correto
+        playlistInfo.entries = entries;
+      }
+
+      console.log(`✅ Playlist processada: ${entries.length} vídeos encontrados`);
+      console.log('📊 Título da playlist:', playlistInfo.title);
+      
+      return playlistInfo;
+    } catch (error) {
+      console.error('❌ Erro ao processar playlist:', error.message);
+      
+      // Fallback: tenta método mais simples
+      try {
+        console.log('🔄 Tentando método alternativo para playlist...');
+        const { stdout } = await execPromise(
+          `yt-dlp --dump-json --no-warnings --max-downloads 5 "${url}"`,
+          { maxBuffer: 1024 * 1024 * 20 }
+        );
+        
+        if (stdout && stdout.trim()) {
+          const lines = stdout.trim().split('\n');
+          const firstVideo = JSON.parse(lines[0]);
+          
+          // Cria uma estrutura de playlist simulada
+          return {
+            _type: 'playlist',
+            id: 'fallback',
+            title: 'Playlist (limitada a 5 vídeos)',
+            entries: lines.map((line, index) => {
+              try {
+                const video = JSON.parse(line);
+                return {
+                  id: video.id,
+                  title: video.title || `Vídeo ${index + 1}`,
+                  url: video.webpage_url || `https://www.youtube.com/watch?v=${video.id}`,
+                  duration: video.duration || 0,
+                  thumbnail: video.thumbnail || ''
+                };
+              } catch (e) {
+                return null;
+              }
+            }).filter(v => v !== null)
+          };
+        }
+      } catch (fallbackError) {
+        console.error('❌ Método alternativo também falhou:', fallbackError.message);
+      }
+      
+      throw new Error(`Não foi possível processar a playlist: ${error.message}`);
+    }
+  }
+
+  // Formata metadados do vídeo
+  formatVideoMetadata(info) {
+    // Trata casos onde info pode ter estruturas diferentes
+    if (!info) {
+      return null;
+    }
+
+    // Obtém a melhor resolução disponível dos formatos
+    let bestHeight = info.height || 0;
+    if (info.formats && Array.isArray(info.formats)) {
+      bestHeight = Math.max(bestHeight, ...info.formats
+        .filter(f => f.height && f.vcodec !== 'none')
+        .map(f => f.height)
+      );
+    }
+
+    return {
+      youtubeId: info.id || info.display_id || 'unknown',
+      title: info.title || 'Sem título',
+      description: info.description || '',
+      duration: info.duration || 0,
+      thumbnail: info.thumbnail || info.thumbnails?.[0]?.url || '',
+      originalUrl: info.webpage_url || info.url || '',
+      channelId: info.channel_id || info.uploader_id,
+      channelName: info.channel || info.uploader || 'Canal Desconhecido',
+      uploadDate: info.upload_date,
+      viewCount: info.view_count || 0,
+      likeCount: info.like_count || 0,
+      tags: info.tags || [],
+      categories: info.categories || [],
+      resolution: bestHeight ? `${bestHeight}p` : 'unknown',
+      format: info.ext || 'mp4',
+      availableQualities: info.formats ? this.extractQualityOptions(info.formats) : []
+    };
+  }
+
+  // Extrai opções de qualidade disponíveis
+  extractQualityOptions(formats) {
+    const qualities = new Set();
+    
+    formats.forEach(format => {
+      if (format.height && format.vcodec !== 'none') {
+        qualities.add(`${format.height}p`);
+      }
+    });
+
+    return Array.from(qualities)
+      .map(q => parseInt(q))
+      .sort((a, b) => b - a)
+      .map(q => `${q}p`);
+  }
+
+  // Converte opção de qualidade do usuário para formato yt-dlp
+  buildQualitySelector(requestedQuality) {
+    if (!requestedQuality || requestedQuality === 'best') {
+      // Sempre prioriza a melhor qualidade disponível
+      return 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best';
+    }
+
+    // Para qualidades específicas (1080p, 720p, etc.)
+    const height = parseInt(requestedQuality.replace('p', ''));
+    
+    return [
+      // Primeiro: tenta vídeo + áudio na altura específica
+      `bestvideo[height<=${height}][ext=mp4]+bestaudio[ext=m4a]`,
+      // Segundo: qualquer formato na altura específica
+      `bestvideo[height<=${height}]+bestaudio`,
+      // Terceiro: melhor MP4 na altura específica
+      `best[height<=${height}][ext=mp4]`,
+      // Quarto: qualquer formato na altura específica
+      `best[height<=${height}]`,
+      // Quinto: fallback para melhor qualidade geral
+      'bestvideo[ext=mp4]+bestaudio[ext=m4a]',
+      'bestvideo+bestaudio',
+      'best[ext=mp4]',
+      'best'
+    ].join('/');
+  }
+
+  // Baixa vídeo único com callback de progresso usando comando direto
+  async downloadVideo(url, options = {}, progressCallback = null) {
+    const info = await this.getInfo(url);
+    const metadata = this.formatVideoMetadata(info);
+    
+    if (!metadata) {
+      throw new Error('Não foi possível formatar metadados do vídeo');
+    }
+    
+    const filename = `${metadata.youtubeId}_${Date.now()}.mp4`;
+    const outputPath = path.join(this.downloadsPath, filename);
+
+    // Constrói comando yt-dlp com seletor de qualidade otimizado
+    const quality = this.buildQualitySelector(options.quality);
+    const command = `yt-dlp -f "${quality}" --no-playlist --write-info-json --write-thumbnail --merge-output-format mp4 -o "${outputPath}" "${url}"`;
+
+    console.log('📥 Iniciando download com comando:', command);
+    console.log('📊 Qualidade solicitada:', options.quality || 'best');
+    console.log('📊 Seletor yt-dlp:', quality);
+
+    // Se tiver callback de progresso
+    if (progressCallback) {
+      return new Promise((resolve, reject) => {
+        const ytdlProcess = exec(command);
+        
+        ytdlProcess.stdout.on('data', (data) => {
+          const output = data.toString();
+          console.log('📊 YT-DLP Output:', output);
+          
+          // Busca por padrões de progresso
+          const progressMatch = output.match(/(\d+\.?\d*)%/);
+          
+          if (progressMatch) {
+            const progress = parseFloat(progressMatch[1]);
+            console.log(`📈 Progresso: ${progress}%`);
+            progressCallback(progress);
+          }
+        });
+
+        ytdlProcess.stderr.on('data', (data) => {
+          console.log('📝 YT-DLP Stderr:', data.toString());
+        });
+
+        ytdlProcess.on('error', (error) => {
+          console.error('❌ Erro no processo:', error);
+          reject(error);
+        });
+
+        ytdlProcess.on('close', (code) => {
+          console.log(`📋 Processo finalizado com código: ${code}`);
+          
+          if (code === 0) {
+            resolve({
+              metadata,
+              filePath: outputPath,
+              filename
+            });
+          } else {
+            reject(new Error(`Download falhou com código ${code}`));
+          }
+        });
+      });
+    }
+
+    // Download sem callback de progresso
+    try {
+      const { stdout, stderr } = await execPromise(command, {
+        maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+      });
+      console.log('✅ Download concluído:', stdout);
+      
+      if (stderr) {
+        console.log('📝 Stderr:', stderr);
+      }
+      
+      return {
+        metadata,
+        filePath: outputPath,
+        filename
+      };
+    } catch (error) {
+      console.error('❌ Erro no download:', error.message);
+      throw error;
+    }
+  }
+
+  // Baixa playlist inteira
+  async downloadPlaylist(url, options = {}, progressCallback = null) {
+    const playlistInfo = await this.getInfo(url);
+    
+    if (!playlistInfo.entries || playlistInfo.entries.length === 0) {
+      throw new Error('Playlist vazia ou inválida');
+    }
+
+    const results = [];
+    const totalVideos = playlistInfo.entries.length;
+
+    for (let i = 0; i < totalVideos; i++) {
+      const video = playlistInfo.entries[i];
+      
+      if (!video || !video.url) continue;
+
+      try {
+        if (progressCallback) {
+          progressCallback({
+            type: 'playlist',
+            current: i + 1,
+            total: totalVideos,
+            videoTitle: video.title
+          });
+        }
+
+        const result = await this.downloadVideo(
+          video.url,
+          options,
+          progressCallback ? (progress) => {
+            progressCallback({
+              type: 'video',
+              current: i + 1,
+              total: totalVideos,
+              videoProgress: progress,
+              videoTitle: video.title
+            });
+          } : null
+        );
+
+        results.push(result);
+      } catch (error) {
+        console.error(`Erro ao baixar vídeo ${i + 1}/${totalVideos}:`, error);
+        results.push({
+          error: error.message,
+          video: video.title || video.url
+        });
+      }
+    }
+
+    return {
+      playlistTitle: playlistInfo.title,
+      playlistId: playlistInfo.id,
+      totalVideos,
+      downloaded: results.filter(r => !r.error).length,
+      results
+    };
+  }
+
+  // Obtém formatos disponíveis para download usando comando direto
+  async getAvailableFormats(url) {
+    try {
+      console.log('🔍 Listando formatos disponíveis para:', url);
+      
+      const { stdout } = await execPromise(`yt-dlp --list-formats --dump-json "${url}"`, {
+        maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+      });
+      
+      if (!stdout || stdout.trim() === '') {
+        throw new Error('Nenhum formato encontrado');
+      }
+
+      const info = JSON.parse(stdout.trim());
+
+      if (!info.formats || !Array.isArray(info.formats)) {
+        throw new Error('Formatos não encontrados na resposta');
+      }
+
+      return info.formats.map(format => ({
+        formatId: format.format_id,
+        ext: format.ext,
+        resolution: format.resolution || format.height ? `${format.height}p` : 'audio only',
+        filesize: format.filesize,
+        quality: format.quality,
+        fps: format.fps,
+        vcodec: format.vcodec || 'none',
+        acodec: format.acodec || 'none'
+      }));
+    } catch (error) {
+      console.error('❌ Erro ao listar formatos:', error.message);
+      throw new Error('Não foi possível obter formatos disponíveis: ' + error.message);
+    }
+  }
+
+  // Limpa arquivos temporários
+  async cleanupTempFiles(olderThanDays = 7) {
+    const now = Date.now();
+    const maxAge = olderThanDays * 24 * 60 * 60 * 1000;
+
+    const files = await fs.readdir(this.downloadsPath);
+    
+    for (const file of files) {
+      const filePath = path.join(this.downloadsPath, file);
+      const stats = await fs.stat(filePath);
+      
+      if (now - stats.mtimeMs > maxAge) {
+        await fs.remove(filePath);
+        console.log(`Arquivo temporário removido: ${file}`);
+      }
+    }
+  }
+}
+
+module.exports = new YtdlpService();

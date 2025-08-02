@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Background circle with gradient -->
+  <defs>
+    <radialGradient id="bg" cx="0.3" cy="0.3">
+      <stop offset="0%" stop-color="#ff4444"/>
+      <stop offset="100%" stop-color="#cc0000"/>
+    </radialGradient>
+  </defs>
+  
+  <circle cx="16" cy="16" r="15" fill="url(#bg)" stroke="#990000" stroke-width="1"/>
+  
+  <!-- Play button triangle with shadow -->
+  <path d="M11 9 L11 23 L23 16 Z" fill="#ffffff" opacity="0.2" transform="translate(1,1)"/>
+  <path d="M11 9 L11 23 L23 16 Z" fill="#ffffff"/>
+</svg>

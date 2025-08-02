@@ -1,0 +1,905 @@
+{
+  "info": {
+    "name": "XandTube API",
+    "description": "API completa do XandTube - Clone do YouTube\n\nEsta coleção contém todos os endpoints disponíveis na API do XandTube, incluindo operações para vídeos, canais e comentários.\n\n**Base URL:** http://localhost:3001/api\n\n**Funcionalidades:**\n- Gerenciamento de vídeos (CRUD)\n- Gerenciamento de canais (CRUD)\n- Sistema de comentários\n- Upload de arquivos\n- Likes e dislikes\n- Inscrições em canais\n\n**Versão:** 1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Verifica se a API está funcionando corretamente"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["health"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"status\": \"OK\",\n  \"message\": \"XandTube Backend funcionando!\",\n  \"timestamp\": \"2024-01-20T10:30:00.000Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Videos",
+      "item": [
+        {
+          "name": "Get All Videos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/videos?limit=20&offset=0&search=&channel=",
+              "host": ["{{baseUrl}}"],
+              "path": ["videos"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Número de vídeos por página (padrão: 20)"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Deslocamento para paginação (padrão: 0)"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Termo de busca (opcional)"
+                },
+                {
+                  "key": "channel",
+                  "value": "",
+                  "description": "ID do canal para filtrar (opcional)"
+                }
+              ]
+            },
+            "description": "Lista todos os vídeos com suporte a busca, filtros e paginação"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/videos",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["videos"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"videos\": [\n    {\n      \"id\": \"1\",\n      \"title\": \"Vídeo de Demonstração 1\",\n      \"description\": \"Este é um vídeo de demonstração do XandTube\",\n      \"filename\": \"demo1.mp4\",\n      \"thumbnail\": \"/api/videos/1/thumbnail\",\n      \"duration\": \"2:30\",\n      \"views\": 1250,\n      \"likes\": 45,\n      \"dislikes\": 2,\n      \"channelId\": \"channel-1\",\n      \"channelName\": \"Canal Tecnologia\",\n      \"uploadDate\": \"2024-01-15T10:30:00Z\",\n      \"tags\": [\"tecnologia\", \"demo\", \"tutorial\"]\n    }\n  ],\n  \"total\": 2,\n  \"hasMore\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Video by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/videos/{{videoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["videos", "{{videoId}}"]
+            },
+            "description": "Obtém um vídeo específico pelo ID. Incrementa automaticamente o contador de visualizações."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/videos/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["videos", "1"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"id\": \"1\",\n  \"title\": \"Vídeo de Demonstração 1\",\n  \"description\": \"Este é um vídeo de demonstração do XandTube\",\n  \"filename\": \"demo1.mp4\",\n  \"thumbnail\": \"/api/videos/1/thumbnail\",\n  \"duration\": \"2:30\",\n  \"views\": 1251,\n  \"likes\": 45,\n  \"dislikes\": 2,\n  \"channelId\": \"channel-1\",\n  \"channelName\": \"Canal Tecnologia\",\n  \"uploadDate\": \"2024-01-15T10:30:00Z\",\n  \"tags\": [\"tecnologia\", \"demo\", \"tutorial\"]\n}"
+            },
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/videos/999",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["videos", "999"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Vídeo não encontrado\",\n  \"message\": \"O vídeo solicitado não existe ou foi removido\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Upload Video",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "video",
+                  "type": "file",
+                  "src": "",
+                  "description": "Arquivo de vídeo (MP4, AVI, MOV, etc.)"
+                },
+                {
+                  "key": "title",
+                  "value": "Meu Novo Vídeo",
+                  "type": "text",
+                  "description": "Título do vídeo (obrigatório)"
+                },
+                {
+                  "key": "description",
+                  "value": "Descrição do meu vídeo",
+                  "type": "text",
+                  "description": "Descrição do vídeo (opcional)"
+                },
+                {
+                  "key": "channelId",
+                  "value": "channel-1",
+                  "type": "text",
+                  "description": "ID do canal (obrigatório)"
+                },
+                {
+                  "key": "channelName",
+                  "value": "Meu Canal",
+                  "type": "text",
+                  "description": "Nome do canal (opcional)"
+                },
+                {
+                  "key": "tags",
+                  "value": "tutorial,tecnologia,demo",
+                  "type": "text",
+                  "description": "Tags separadas por vírgula (opcional)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/videos",
+              "host": ["{{baseUrl}}"],
+              "path": ["videos"]
+            },
+            "description": "Faz upload de um novo vídeo. Aceita arquivos até 100MB."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "video",
+                      "type": "file",
+                      "src": ""
+                    },
+                    {
+                      "key": "title",
+                      "value": "Meu Novo Vídeo",
+                      "type": "text"
+                    },
+                    {
+                      "key": "channelId",
+                      "value": "channel-1",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/videos",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["videos"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Vídeo enviado com sucesso!\",\n  \"video\": {\n    \"id\": \"new-video-id\",\n    \"title\": \"Meu Novo Vídeo\",\n    \"description\": \"Descrição do meu vídeo\",\n    \"filename\": \"uuid-filename.mp4\",\n    \"thumbnail\": \"/api/videos/new-video-id/thumbnail\",\n    \"duration\": \"0:00\",\n    \"views\": 0,\n    \"likes\": 0,\n    \"dislikes\": 0,\n    \"channelId\": \"channel-1\",\n    \"channelName\": \"Meu Canal\",\n    \"uploadDate\": \"2024-01-20T10:30:00.000Z\",\n    \"tags\": [\"tutorial\", \"tecnologia\", \"demo\"]\n  }\n}"
+            },
+            {
+              "name": "Bad Request",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "title",
+                      "value": "",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/videos",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["videos"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Campos obrigatórios ausentes\",\n  \"required\": [\"title\", \"channelId\"]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Like Video",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/videos/{{videoId}}/like",
+              "host": ["{{baseUrl}}"],
+              "path": ["videos", "{{videoId}}", "like"]
+            },
+            "description": "Adiciona um like ao vídeo"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/videos/1/like",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["videos", "1", "like"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Vídeo curtido!\",\n  \"likes\": 46\n}"
+            }
+          ]
+        },
+        {
+          "name": "Dislike Video",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/videos/{{videoId}}/dislike",
+              "host": ["{{baseUrl}}"],
+              "path": ["videos", "{{videoId}}", "dislike"]
+            },
+            "description": "Adiciona um dislike ao vídeo"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/videos/1/dislike",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["videos", "1", "dislike"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Vídeo descurtido!\",\n  \"dislikes\": 3\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Video Thumbnail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/videos/{{videoId}}/thumbnail",
+              "host": ["{{baseUrl}}"],
+              "path": ["videos", "{{videoId}}", "thumbnail"]
+            },
+            "description": "Obtém a thumbnail do vídeo (atualmente redireciona para placeholder)"
+          }
+        },
+        {
+          "name": "Delete Video",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/videos/{{videoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["videos", "{{videoId}}"]
+            },
+            "description": "Remove um vídeo do sistema"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/videos/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["videos", "1"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Vídeo removido com sucesso!\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Channels",
+      "item": [
+        {
+          "name": "Get All Channels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/channels?limit=20&offset=0&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["channels"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Número de canais por página (padrão: 20)"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Deslocamento para paginação (padrão: 0)"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Termo de busca (opcional)"
+                }
+              ]
+            },
+            "description": "Lista todos os canais com suporte a busca e paginação"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/channels",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["channels"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"channels\": [\n    {\n      \"id\": \"channel-1\",\n      \"name\": \"Canal Tecnologia\",\n      \"description\": \"Canal dedicado a tecnologia e inovação\",\n      \"avatar\": \"/api/channels/channel-1/avatar\",\n      \"banner\": \"/api/channels/channel-1/banner\",\n      \"subscribers\": 15420,\n      \"totalViews\": 234567,\n      \"videoCount\": 45,\n      \"createdAt\": \"2023-06-15T10:30:00Z\",\n      \"verified\": true\n    }\n  ],\n  \"total\": 2,\n  \"hasMore\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Channel by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/channels/{{channelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["channels", "{{channelId}}"]
+            },
+            "description": "Obtém um canal específico pelo ID"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/channels/channel-1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["channels", "channel-1"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"id\": \"channel-1\",\n  \"name\": \"Canal Tecnologia\",\n  \"description\": \"Canal dedicado a tecnologia e inovação\",\n  \"avatar\": \"/api/channels/channel-1/avatar\",\n  \"banner\": \"/api/channels/channel-1/banner\",\n  \"subscribers\": 15420,\n  \"totalViews\": 234567,\n  \"videoCount\": 45,\n  \"createdAt\": \"2023-06-15T10:30:00Z\",\n  \"verified\": true\n}"
+            },
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/channels/not-found",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["channels", "not-found"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Canal não encontrado\",\n  \"message\": \"O canal solicitado não existe\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Meu Novo Canal\",\n  \"description\": \"Descrição do meu canal\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/channels",
+              "host": ["{{baseUrl}}"],
+              "path": ["channels"]
+            },
+            "description": "Cria um novo canal"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Meu Novo Canal\",\n  \"description\": \"Descrição do meu canal\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/channels",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["channels"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Canal criado com sucesso!\",\n  \"channel\": {\n    \"id\": \"new-channel-id\",\n    \"name\": \"Meu Novo Canal\",\n    \"description\": \"Descrição do meu canal\",\n    \"avatar\": \"/api/channels/new-channel-id/avatar\",\n    \"banner\": \"/api/channels/new-channel-id/banner\",\n    \"subscribers\": 0,\n    \"totalViews\": 0,\n    \"videoCount\": 0,\n    \"createdAt\": \"2024-01-20T10:30:00.000Z\",\n    \"verified\": false\n  }\n}"
+            },
+            {
+              "name": "Conflict",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Canal Tecnologia\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/channels",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["channels"]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Já existe um canal com esse nome\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Channel",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nome Atualizado\",\n  \"description\": \"Nova descrição\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/channels/{{channelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["channels", "{{channelId}}"]
+            },
+            "description": "Atualiza informações de um canal"
+          }
+        },
+        {
+          "name": "Subscribe to Channel",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/channels/{{channelId}}/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["channels", "{{channelId}}", "subscribe"]
+            },
+            "description": "Inscreve-se em um canal"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/channels/channel-1/subscribe",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["channels", "channel-1", "subscribe"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Inscrito no canal!\",\n  \"subscribers\": 15421\n}"
+            }
+          ]
+        },
+        {
+          "name": "Unsubscribe from Channel",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/channels/{{channelId}}/unsubscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["channels", "{{channelId}}", "unsubscribe"]
+            },
+            "description": "Cancela inscrição em um canal"
+          }
+        },
+        {
+          "name": "Get Channel Avatar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/channels/{{channelId}}/avatar",
+              "host": ["{{baseUrl}}"],
+              "path": ["channels", "{{channelId}}", "avatar"]
+            },
+            "description": "Obtém o avatar do canal"
+          }
+        },
+        {
+          "name": "Get Channel Banner",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/channels/{{channelId}}/banner",
+              "host": ["{{baseUrl}}"],
+              "path": ["channels", "{{channelId}}", "banner"]
+            },
+            "description": "Obtém o banner do canal"
+          }
+        },
+        {
+          "name": "Delete Channel",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/channels/{{channelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["channels", "{{channelId}}"]
+            },
+            "description": "Remove um canal do sistema"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Get Comments by Video ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{videoId}}?limit=20&offset=0&sortBy=newest",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{videoId}}"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Número de comentários por página (padrão: 20)"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Deslocamento para paginação (padrão: 0)"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "newest",
+                  "description": "Ordenação: newest, oldest, popular (padrão: newest)"
+                }
+              ]
+            },
+            "description": "Obtém todos os comentários de um vídeo específico"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/comments/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["comments", "1"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"comments\": [\n    {\n      \"id\": \"1\",\n      \"videoId\": \"1\",\n      \"authorName\": \"João Silva\",\n      \"authorAvatar\": \"/api/comments/avatar/1\",\n      \"content\": \"Excelente vídeo! Muito bem explicado.\",\n      \"timestamp\": \"2024-01-16T09:15:00Z\",\n      \"likes\": 12,\n      \"dislikes\": 0,\n      \"replies\": []\n    }\n  ],\n  \"total\": 2,\n  \"hasMore\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"videoId\": \"1\",\n  \"authorName\": \"Usuário Teste\",\n  \"content\": \"Ótimo vídeo! Muito útil.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments"]
+            },
+            "description": "Adiciona um novo comentário a um vídeo"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"videoId\": \"1\",\n  \"authorName\": \"Usuário Teste\",\n  \"content\": \"Ótimo vídeo! Muito útil.\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/comments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["comments"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Comentário adicionado com sucesso!\",\n  \"comment\": {\n    \"id\": \"new-comment-id\",\n    \"videoId\": \"1\",\n    \"authorName\": \"Usuário Teste\",\n    \"authorAvatar\": \"/api/comments/avatar/new-id\",\n    \"content\": \"Ótimo vídeo! Muito útil.\",\n    \"timestamp\": \"2024-01-20T10:30:00.000Z\",\n    \"likes\": 0,\n    \"dislikes\": 0,\n    \"replies\": []\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Reply to Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"videoId\": \"1\",\n  \"authorName\": \"Usuário Resposta\",\n  \"content\": \"Concordo completamente!\",\n  \"parentId\": \"1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments"]
+            },
+            "description": "Adiciona uma resposta a um comentário existente"
+          }
+        },
+        {
+          "name": "Like Comment",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}/like",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}", "like"]
+            },
+            "description": "Adiciona um like a um comentário"
+          }
+        },
+        {
+          "name": "Dislike Comment",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}/dislike",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}", "dislike"]
+            },
+            "description": "Adiciona um dislike a um comentário"
+          }
+        },
+        {
+          "name": "Get Comment Avatar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/comments/avatar/{{avatarId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "avatar", "{{avatarId}}"]
+            },
+            "description": "Obtém o avatar de um usuário (placeholder)"
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}"]
+            },
+            "description": "Remove um comentário ou resposta"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api",
+      "type": "string"
+    },
+    {
+      "key": "videoId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "channelId",
+      "value": "channel-1",
+      "type": "string"
+    },
+    {
+      "key": "commentId",
+      "value": "1",
+      "type": "string"
+    }
+  ]
+}
