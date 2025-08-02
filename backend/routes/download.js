@@ -346,10 +346,29 @@ router.post('/playlist', authenticateToken, async (req, res) => {
     // Processa download em background
     try {
       const result = await ytdlpService.downloadPlaylist(url, { quality }, (progress) => {
+        // Atualiza progresso no Map
         downloadProgress.set(downloadId, { 
           ...progress,
-          status: 'downloading'
+          status: 'downloading',
+          downloadId
         });
+
+        // Transmite progresso via WebSocket para todos os clientes conectados
+        const wss = req.app.locals.wss;
+        if (wss) {
+          wss.clients.forEach(client => {
+            if (client.readyState === 1 && client.downloadId === downloadId) { // WebSocket.OPEN = 1
+              try {
+                client.send(JSON.stringify({
+                  downloadId,
+                  ...progress
+                }));
+              } catch (wsError) {
+                console.error('Erro ao enviar via WebSocket:', wsError);
+              }
+            }
+          });
+        }
       });
 
       if (saveToLibrary) {

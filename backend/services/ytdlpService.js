@@ -331,7 +331,7 @@ class YtdlpService {
     }
   }
 
-  // Baixa playlist inteira
+  // Baixa playlist inteira com progresso individual para cada vídeo
   async downloadPlaylist(url, options = {}, progressCallback = null) {
     const playlistInfo = await this.getInfo(url);
     
@@ -341,44 +341,142 @@ class YtdlpService {
 
     const results = [];
     const totalVideos = playlistInfo.entries.length;
+    const videosProgress = {};
+
+    // Inicializa progresso de todos os vídeos
+    for (let i = 0; i < totalVideos; i++) {
+      const video = playlistInfo.entries[i];
+      if (video && video.id) {
+        videosProgress[video.id] = {
+          index: i + 1,
+          title: video.title || `Vídeo ${i + 1}`,
+          status: 'pending',
+          progress: 0,
+          error: null
+        };
+      }
+    }
+
+    // Envia progresso inicial
+    if (progressCallback) {
+      progressCallback({
+        type: 'playlist_init',
+        totalVideos,
+        playlistTitle: playlistInfo.title,
+        videos: videosProgress
+      });
+    }
 
     for (let i = 0; i < totalVideos; i++) {
       const video = playlistInfo.entries[i];
       
-      if (!video || !video.url) continue;
+      if (!video || !video.url) {
+        if (video && video.id && videosProgress[video.id]) {
+          videosProgress[video.id].status = 'skipped';
+          videosProgress[video.id].error = 'URL inválida';
+          
+          if (progressCallback) {
+            progressCallback({
+              type: 'video_update',
+              videoId: video.id,
+              videos: videosProgress,
+              current: i + 1,
+              total: totalVideos
+            });
+          }
+        }
+        continue;
+      }
 
       try {
-        if (progressCallback) {
-          progressCallback({
-            type: 'playlist',
-            current: i + 1,
-            total: totalVideos,
-            videoTitle: video.title
-          });
+        // Marca vídeo como iniciando
+        if (video.id && videosProgress[video.id]) {
+          videosProgress[video.id].status = 'starting';
+          videosProgress[video.id].progress = 0;
+          
+          if (progressCallback) {
+            progressCallback({
+              type: 'video_update',
+              videoId: video.id,
+              videos: videosProgress,
+              current: i + 1,
+              total: totalVideos
+            });
+          }
         }
 
         const result = await this.downloadVideo(
           video.url,
           options,
           progressCallback ? (progress) => {
-            progressCallback({
-              type: 'video',
-              current: i + 1,
-              total: totalVideos,
-              videoProgress: progress,
-              videoTitle: video.title
-            });
+            if (video.id && videosProgress[video.id]) {
+              videosProgress[video.id].status = 'downloading';
+              videosProgress[video.id].progress = progress;
+              
+              progressCallback({
+                type: 'video_update',
+                videoId: video.id,
+                videos: videosProgress,
+                current: i + 1,
+                total: totalVideos,
+                videoProgress: progress
+              });
+            }
           } : null
         );
+
+        // Marca como concluído
+        if (video.id && videosProgress[video.id]) {
+          videosProgress[video.id].status = 'completed';
+          videosProgress[video.id].progress = 100;
+          
+          if (progressCallback) {
+            progressCallback({
+              type: 'video_update',
+              videoId: video.id,
+              videos: videosProgress,
+              current: i + 1,
+              total: totalVideos
+            });
+          }
+        }
 
         results.push(result);
       } catch (error) {
         console.error(`Erro ao baixar vídeo ${i + 1}/${totalVideos}:`, error);
+        
+        // Marca como erro
+        if (video.id && videosProgress[video.id]) {
+          videosProgress[video.id].status = 'error';
+          videosProgress[video.id].error = error.message;
+          
+          if (progressCallback) {
+            progressCallback({
+              type: 'video_update',
+              videoId: video.id,
+              videos: videosProgress,
+              current: i + 1,
+              total: totalVideos
+            });
+          }
+        }
+        
         results.push({
           error: error.message,
-          video: video.title || video.url
+          video: video.title || video.url,
+          videoId: video.id
         });
       }
+    }
+
+    // Finaliza playlist
+    if (progressCallback) {
+      progressCallback({
+        type: 'playlist_complete',
+        totalVideos,
+        downloaded: results.filter(r => !r.error).length,
+        videos: videosProgress
+      });
     }
 
     return {
@@ -386,7 +484,8 @@ class YtdlpService {
       playlistId: playlistInfo.id,
       totalVideos,
       downloaded: results.filter(r => !r.error).length,
-      results
+      results,
+      videosProgress
     };
   }
 

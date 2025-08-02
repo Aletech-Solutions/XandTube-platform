@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { 
   FaYoutube, FaDownload, FaSpinner, FaCheck, FaTimes, 
   FaVideo, FaList, FaClock, FaEye, FaFolder, FaInfoCircle 
@@ -8,6 +8,17 @@ import {
 import api from '../services/api';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
+
+const spin = keyframes`
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+`;
+
+const GlobalStyle = styled.div`
+  .spin {
+    animation: ${spin} 1s linear infinite;
+  }
+`;
 
 const PageContainer = styled.div`
   display: flex;
@@ -560,6 +571,173 @@ const ProgressInfo = styled.div`
   }
 `;
 
+const PlaylistProgressSection = styled.div`
+  background: #2d2d2d;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+
+  h3 {
+    color: #ffffff;
+    margin: 0 0 20px 0;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    
+    h3 {
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    padding: 12px;
+    margin-bottom: 12px;
+    
+    h3 {
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+  }
+`;
+
+const VideoProgressList = styled.div`
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #555;
+  border-radius: 8px;
+  background: #1e1e1e;
+
+  @media (max-width: 768px) {
+    max-height: 300px;
+  }
+
+  @media (max-width: 480px) {
+    max-height: 250px;
+  }
+`;
+
+const VideoProgressItem = styled.div`
+  padding: 15px;
+  border-bottom: 1px solid #333;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  h4 {
+    color: #ffffff;
+    font-size: 14px;
+    margin: 0 0 8px 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    
+    .status-icon {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .status-pending { color: #999; }
+    .status-starting { color: #ffa500; }
+    .status-downloading { color: #2196f3; }
+    .status-completed { color: #4caf50; }
+    .status-error { color: #f44336; }
+    .status-skipped { color: #777; }
+  }
+
+  @media (max-width: 768px) {
+    padding: 12px;
+    
+    h4 {
+      font-size: 13px;
+    }
+    
+    .status {
+      font-size: 11px;
+      gap: 6px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    padding: 10px;
+    
+    h4 {
+      font-size: 12px;
+    }
+    
+    .status {
+      font-size: 10px;
+      gap: 4px;
+    }
+  }
+`;
+
+const VideoProgressBar = styled.div`
+  width: 100%;
+  height: 20px;
+  background: #333;
+  border-radius: 10px;
+  overflow: hidden;
+
+  @media (max-width: 768px) {
+    height: 18px;
+    border-radius: 9px;
+  }
+
+  @media (max-width: 480px) {
+    height: 16px;
+    border-radius: 8px;
+  }
+`;
+
+const VideoProgressFill = styled.div`
+  height: 100%;
+  background: ${props => {
+    switch (props.status) {
+      case 'completed': return 'linear-gradient(90deg, #4caf50 0%, #66bb6a 100%)';
+      case 'downloading': return 'linear-gradient(90deg, #2196f3 0%, #42a5f5 100%)';
+      case 'error': return 'linear-gradient(90deg, #f44336 0%, #ef5350 100%)';
+      case 'starting': return 'linear-gradient(90deg, #ffa500 0%, #ffb74d 100%)';
+      default: return '#555';
+    }
+  }};
+  width: ${props => Math.max(props.progress || 0, props.status === 'starting' ? 5 : 0)}%;
+  transition: width 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+
+  @media (max-width: 768px) {
+    font-size: 11px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 10px;
+  }
+`;
+
 const PlaylistInfo = styled.div`
   background: #3d3d3d;
   border: 2px solid #FF0000;
@@ -732,6 +910,8 @@ function DownloadPage() {
   const [downloadId, setDownloadId] = useState(null);
   const [error, setError] = useState('');
   const [saveToLibrary, setSaveToLibrary] = useState(true);
+  const [playlistProgress, setPlaylistProgress] = useState(null);
+  const [videosProgress, setVideosProgress] = useState({});
   const wsRef = useRef(null);
   const progressIntervalRef = useRef(null);
 
@@ -771,7 +951,40 @@ function DownloadPage() {
     wsRef.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.downloadId === downloadId) {
-        setDownloadProgress(data.progress || 0);
+        console.log('📨 WebSocket recebido:', data);
+        
+        // Atualiza progresso baseado no tipo
+        switch (data.type) {
+          case 'playlist_init':
+            setPlaylistProgress({
+              totalVideos: data.totalVideos,
+              playlistTitle: data.playlistTitle
+            });
+            setVideosProgress(data.videos || {});
+            break;
+            
+          case 'video_update':
+            setVideosProgress(data.videos || {});
+            // Calcula progresso geral da playlist
+            const videos = data.videos || {};
+            const totalVideos = Object.keys(videos).length;
+            const completedVideos = Object.values(videos).filter(v => v.status === 'completed').length;
+            const overallProgress = totalVideos > 0 ? (completedVideos / totalVideos) * 100 : 0;
+            setDownloadProgress(overallProgress);
+            break;
+            
+          case 'playlist_complete':
+            setVideosProgress(data.videos || {});
+            setDownloadProgress(100);
+            setDownloading(false);
+            console.log('🎉 Download da playlist completo!');
+            break;
+            
+          default:
+            // Fallback para vídeo único
+            setDownloadProgress(data.progress || data.videoProgress || 0);
+            break;
+        }
       }
     };
 
@@ -785,21 +998,56 @@ function DownloadPage() {
     progressIntervalRef.current = setInterval(async () => {
       try {
         const response = await api.get(`/download/progress/${downloadId}`);
-        const { progress, status } = response.data;
+        const data = response.data;
         
-        setDownloadProgress(progress || 0);
+        console.log('📊 Polling recebido:', data);
         
-        if (status === 'completed') {
+        // Processa dados de progresso similar ao WebSocket
+        if (data.type) {
+          switch (data.type) {
+            case 'playlist_init':
+              setPlaylistProgress({
+                totalVideos: data.totalVideos,
+                playlistTitle: data.playlistTitle
+              });
+              setVideosProgress(data.videos || {});
+              break;
+              
+            case 'video_update':
+              setVideosProgress(data.videos || {});
+              const videos = data.videos || {};
+              const totalVideos = Object.keys(videos).length;
+              const completedVideos = Object.values(videos).filter(v => v.status === 'completed').length;
+              const overallProgress = totalVideos > 0 ? (completedVideos / totalVideos) * 100 : 0;
+              setDownloadProgress(overallProgress);
+              break;
+              
+            case 'playlist_complete':
+              setVideosProgress(data.videos || {});
+              setDownloadProgress(100);
+              clearInterval(progressIntervalRef.current);
+              setDownloading(false);
+              console.log('🎉 Download da playlist completo via polling!');
+              break;
+              
+            default:
+              setDownloadProgress(data.progress || 0);
+              break;
+          }
+        } else {
+          // Fallback para formato antigo
+          setDownloadProgress(data.progress || 0);
+        }
+        
+        if (data.status === 'completed') {
           clearInterval(progressIntervalRef.current);
           setDownloading(false);
           console.log('Download completo!');
           setError('');
-          setUrl('');
-          setVideoInfo(null);
-        } else if (status === 'error') {
+        } else if (data.status === 'error') {
           clearInterval(progressIntervalRef.current);
           setDownloading(false);
-          setError(response.data.error || 'Erro no download');
+          setError(data.error || 'Erro no download');
         }
       } catch (error) {
         console.error('Erro ao verificar progresso:', error);
@@ -836,6 +1084,8 @@ function DownloadPage() {
     setDownloading(true);
     setError('');
     setDownloadProgress(0);
+    setPlaylistProgress(null);
+    setVideosProgress({});
 
     try {
       const endpoint = downloadPlaylist ? '/download/playlist' : '/download/video';
@@ -888,10 +1138,35 @@ function DownloadPage() {
     return `${views} visualizações`;
   };
 
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'pending': return <FaClock />;
+      case 'starting': return <FaSpinner className="spin" />;
+      case 'downloading': return <FaSpinner className="spin" />;
+      case 'completed': return <FaCheck />;
+      case 'error': return <FaTimes />;
+      case 'skipped': return <FaTimes />;
+      default: return <FaClock />;
+    }
+  };
+
+  const getStatusText = (status, error = null) => {
+    switch (status) {
+      case 'pending': return 'Aguardando...';
+      case 'starting': return 'Iniciando...';
+      case 'downloading': return 'Baixando...';
+      case 'completed': return 'Concluído';
+      case 'error': return `Erro: ${error || 'Desconhecido'}`;
+      case 'skipped': return 'Ignorado';
+      default: return 'Aguardando...';
+    }
+  };
+
   return (
-    <PageContainer>
-      <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-      <Sidebar isOpen={sidebarOpen} />
+    <GlobalStyle>
+      <PageContainer>
+        <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+        <Sidebar isOpen={sidebarOpen} />
       
       <MainContent sidebarOpen={sidebarOpen}>
         <DownloadContainer>
@@ -1101,7 +1376,7 @@ function DownloadPage() {
             </VideoInfo>
           )}
 
-          {downloading && (
+          {downloading && !playlistProgress && (
             <ProgressSection>
               <h3>Progresso do Download</h3>
               <ProgressBar>
@@ -1118,9 +1393,57 @@ function DownloadPage() {
               </ProgressInfo>
             </ProgressSection>
           )}
+
+          {downloading && playlistProgress && (
+            <PlaylistProgressSection>
+              <h3>
+                <FaList />
+                Progresso da Playlist: {playlistProgress.playlistTitle}
+              </h3>
+              
+              <ProgressBar>
+                <ProgressFill progress={downloadProgress || 0}>
+                  {(downloadProgress || 0).toFixed(0)}%
+                </ProgressFill>
+              </ProgressBar>
+              
+              <ProgressInfo>
+                <span>
+                  <FaSpinner className="spin" />
+                  Baixando playlist...
+                </span>
+                <span>
+                  {Object.values(videosProgress).filter(v => v.status === 'completed').length} de {playlistProgress.totalVideos} vídeos baixados
+                </span>
+              </ProgressInfo>
+
+              <VideoProgressList>
+                {Object.entries(videosProgress).map(([videoId, video]) => (
+                  <VideoProgressItem key={videoId}>
+                    <h4>{video.index}. {video.title}</h4>
+                    <div className={`status status-${video.status}`}>
+                      <div className="status-icon">
+                        {getStatusIcon(video.status)}
+                      </div>
+                      {getStatusText(video.status, video.error)}
+                    </div>
+                    <VideoProgressBar>
+                      <VideoProgressFill 
+                        progress={video.progress} 
+                        status={video.status}
+                      >
+                        {video.status === 'downloading' && video.progress > 0 ? `${video.progress.toFixed(0)}%` : ''}
+                      </VideoProgressFill>
+                    </VideoProgressBar>
+                  </VideoProgressItem>
+                ))}
+              </VideoProgressList>
+            </PlaylistProgressSection>
+          )}
         </DownloadContainer>
       </MainContent>
-    </PageContainer>
+      </PageContainer>
+    </GlobalStyle>
   );
 }
 

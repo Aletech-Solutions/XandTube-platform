@@ -23,8 +23,11 @@ XandTube/
 ### 📥 Download de Vídeos do YouTube (NOVO!)
 - ✅ Download de vídeos individuais
 - ✅ Download de playlists completas
+- ✅ **Progresso individual por vídeo** em playlists
 - ✅ Seleção de qualidade (Best, 1080p, 720p, 480p)
-- ✅ Progresso em tempo real (WebSocket)
+- ✅ Progresso em tempo real (WebSocket + Polling)
+- ✅ Interface visual com barras de progresso coloridas
+- ✅ Estados visuais: Aguardando, Iniciando, Baixando, Concluído, Erro
 - ✅ Integração robusta com YT-DLP
 
 ### Backend
@@ -68,11 +71,12 @@ npm run install-all
 ### Execução
 ```bash
 # Executar backend e frontend simultaneamente
-npm run dev
+npm start        # OU npm run dev
 
 # Ou executar separadamente:
-npm run backend  # Backend na porta 3001
-npm run frontend # Frontend na porta 3000
+npm run backend     # Backend na porta 3001 (modo desenvolvimento)
+npm run frontend    # Frontend na porta 3000
+npm run backend:prod # Backend em modo produção
 ```
 
 ### ✅ Verificação da Instalação
@@ -81,9 +85,25 @@ npm run frontend # Frontend na porta 3000
 cd backend
 npm run test:download
 
+# Testar progresso de playlist (com exemplo)
+npm run test:playlist
+
 # Verificar saúde da API
 curl http://localhost:3001/api/health
 ```
+
+### 🎯 Funcionalidades de Download
+
+#### Progresso Individual por Vídeo
+- **Interface Visual**: Cada vídeo da playlist tem sua própria barra de progresso
+- **Estados Coloridos**: 
+  - 🟡 Iniciando (laranja)
+  - 🔵 Baixando (azul) 
+  - 🟢 Concluído (verde)
+  - 🔴 Erro (vermelho)
+  - ⚫ Aguardando (cinza)
+- **Tempo Real**: WebSocket + polling para atualizações instantâneas
+- **Informações Detalhadas**: Progresso percentual e status individual
 
 ## APIs Disponíveis
 
@@ -98,21 +118,50 @@ Consulte a documentação completa no Postman (link na seção de documentação
 - `GET /api/comments/:videoId` - Comentários do vídeo
 - `POST /api/comments` - Adicionar comentário
 
+## Estrutura de Pastas
+
+```
+XandTube/
+├── backend/                 # API Node.js/Express
+│   ├── config/             # Configurações do banco
+│   ├── models/             # Models Sequelize
+│   ├── routes/             # Rotas da API
+│   ├── services/           # Serviços (YT-DLP, Downloads)
+│   ├── middleware/         # Middlewares de autenticação
+│   ├── utils/              # Utilitários
+│   └── scripts/            # Scripts de teste
+├── frontend/               # Interface React
+│   ├── src/
+│   │   ├── components/     # Componentes reutilizáveis
+│   │   ├── pages/          # Páginas da aplicação
+│   │   ├── services/       # APIs e utilitários
+│   │   └── utils/          # Helpers e formatadores
+│   └── public/             # Arquivos estáticos
+├── videos/                 # Armazenamento de vídeos
+│   ├── downloads/          # Vídeos baixados (.keep incluído)
+│   └── metadata/           # Metadados (.keep incluído)
+├── docs/                   # Documentação da API
+├── .gitignore             # Ignora node_modules, vídeos, etc.
+└── package.json           # Scripts raiz do projeto
+```
+
 ## Tecnologias Utilizadas
 
 ### Backend
-- Node.js
-- Express.js
+- Node.js + Express.js
+- SQLite + Sequelize ORM
+- WebSocket (ws) para progresso em tempo real  
+- JWT para autenticação
 - Multer (upload de arquivos)
+- YT-DLP para downloads do YouTube
 - fs-extra (manipulação de arquivos)
-- UUID (geração de IDs únicos)
 
 ### Frontend
-- React 18
-- React Router DOM
-- Styled Components
+- React 18 + React Router DOM
+- Styled Components + React Icons
 - Axios (requisições HTTP)
-- React Icons
+- WebSocket client para progresso
+- CRACO (configuração webpack)
 
 ## Contribuição
 

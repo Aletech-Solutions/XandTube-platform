@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "Um clone do YouTube chamado XandTube",
   "scripts": {
+    "start": "concurrently \"npm run backend\" \"npm run frontend\"",
     "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
     "backend": "cd backend && npm run dev",
     "frontend": "cd frontend && npm start",
-    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+    "backend:prod": "cd backend && npm start",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "build": "cd frontend && npm run build"
   },
   "keywords": ["youtube", "clone", "video", "streaming"],
   "author": "XandTube Team",
