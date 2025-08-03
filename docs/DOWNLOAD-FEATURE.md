@@ -1,40 +1,40 @@
-# 🎥 XandTube - Funcionalidade de Download
+# 🎥 XandTube - Download Feature
 
-## 📋 Visão Geral
+## 📋 Overview
 
-A funcionalidade de download permite baixar vídeos e playlists do YouTube usando o YT-DLP, uma ferramenta robusta e atualizada para extração de conteúdo.
+The download feature allows downloading YouTube videos and playlists using YT-DLP, a robust and updated tool for content extraction.
 
-## 🚀 Como Funciona
+## 🚀 How It Works
 
-### 1. **Análise de URL**
-- O usuário cola uma URL do YouTube
-- O sistema analisa se é um vídeo ou playlist
-- Extrai metadados como título, duração, thumbnail
+### 1. **URL Analysis**
+- User pastes a YouTube URL
+- System analyzes if it's a video or playlist
+- Extracts metadata like title, duration, thumbnail
 
-### 2. **Seleção de Qualidade**
-- Oferece opções: Best, 1080p, 720p, 480p
-- Mostra informações detalhadas do conteúdo
+### 2. **Quality Selection**
+- Offers options: Best, 1080p, 720p, 480p
+- Shows detailed content information
 
-### 3. **Download com Progresso**
-- Progresso em tempo real via WebSocket
-- Fallback para polling se WebSocket falhar
-- Status detalhado durante o processo
+### 3. **Download with Progress**
+- Real-time progress via WebSocket
+- Fallback to polling if WebSocket fails
+- Detailed status during the process
 
-### 4. **Armazenamento**
-- Opção de salvar na biblioteca pessoal
-- Metadados salvos no banco de dados
-- Arquivos organizados por usuário
+### 4. **Storage**
+- Option to save to personal library
+- Metadata saved to database
+- Files organized by user
 
-## 🔧 Configuração Técnica
+## 🔧 Technical Configuration
 
-### Dependências Necessárias
+### Required Dependencies
 
 1. **YT-DLP**
    ```bash
    pip install yt-dlp
    ```
 
-2. **FFmpeg** (para processamento)
+2. **FFmpeg** (for processing)
    ```bash
    # Windows
    winget install ffmpeg
@@ -46,21 +46,21 @@ A funcionalidade de download permite baixar vídeos e playlists do YouTube usand
    sudo apt install ffmpeg
    ```
 
-### Verificação da Instalação
+### Installation Verification
 
 ```bash
-# Verificar YT-DLP
+# Check YT-DLP
 yt-dlp --version
 
-# Verificar FFmpeg
+# Check FFmpeg
 ffmpeg -version
 
-# Testar YT-DLP no projeto
+# Test YT-DLP in project
 cd backend
 npm run test:ytdlp
 ```
 
-## 📊 Endpoints da API
+## 📊 API Endpoints
 
 ### 1. **Test YT-DLP**
 ```http
@@ -68,7 +68,7 @@ GET /api/download/test?url=VIDEO_URL
 Authorization: Bearer TOKEN
 ```
 
-**Uso:** Diagnóstico e verificação se YT-DLP está funcionando.
+**Usage:** Diagnosis and verification if YT-DLP is working.
 
 ### 2. **Get Video Info**
 ```http
@@ -76,7 +76,7 @@ GET /api/download/info?url=VIDEO_URL
 Authorization: Bearer TOKEN
 ```
 
-**Resposta para vídeo:**
+**Response for video:**
 ```json
 {
   "type": "video",
@@ -88,16 +88,16 @@ Authorization: Bearer TOKEN
 }
 ```
 
-**Resposta para playlist:**
+**Response for playlist:**
 ```json
 {
   "type": "playlist",
-  "title": "Minha Playlist",
+  "title": "My Playlist",
   "totalVideos": 25,
   "videos": [
     {
       "id": "video1",
-      "title": "Vídeo 1",
+      "title": "Video 1",
       "duration": 180,
       "thumbnail": "https://..."
     }
@@ -135,7 +135,7 @@ GET /api/download/progress/{downloadId}
 Authorization: Bearer TOKEN
 ```
 
-**Resposta:**
+**Response:
 ```json
 {
   "progress": 75,
@@ -145,177 +145,177 @@ Authorization: Bearer TOKEN
 }
 ```
 
-## 🔄 Fluxo de Download
+## 🔄 Download Flow
 
-### Vídeo Individual
-1. **Análise** → Extrai metadados
-2. **Configuração** → Seleciona qualidade
-3. **Download** → YT-DLP baixa o arquivo
-4. **Processamento** → FFmpeg processa se necessário
-5. **Armazenamento** → Salva arquivo e metadados
-6. **Notificação** → Usuário é notificado da conclusão
+### Individual Video
+1. **Analysis** → Extracts metadata
+2. **Configuration** → Selects quality
+3. **Download** → YT-DLP downloads the file
+4. **Processing** → FFmpeg processes if necessary
+5. **Storage** → Saves file and metadata
+6. **Notification** → User is notified of completion
 
 ### Playlist
-1. **Análise** → Lista todos os vídeos
-2. **Iteração** → Baixa cada vídeo individualmente
-3. **Progresso** → Atualiza progresso geral e por vídeo
-4. **Relatório** → Sumário de sucessos/falhas
+1. **Analysis** → Lists all videos
+2. **Iteration** → Downloads each video individually
+3. **Progress** → Updates general and per-video progress
+4. **Report** → Summary of successes/failures
 
-## 🛠️ Estrutura de Arquivos
+## 🛠️ File Structure
 
 ```
 videos/
-├── downloads/           # Arquivos baixados
+├── downloads/           # Downloaded files
 │   ├── dQw4w9WgXcQ_1234567890.mp4
 │   └── ...
-└── metadata/           # Metadados JSON
+└── metadata/           # JSON metadata
     ├── dQw4w9WgXcQ.json
     └── ...
 ```
 
-## 📱 Interface do Usuário
+## 📱 User Interface
 
-### Componentes React
+### React Components
 
-1. **DownloadPage** - Página principal
-2. **VideoAnalyzer** - Análise de URLs
-3. **QualitySelector** - Seleção de qualidade
-4. **ProgressTracker** - Acompanhamento em tempo real
-5. **VideoPreview** - Preview do conteúdo
+1. **DownloadPage** - Main page
+2. **VideoAnalyzer** - URL analysis
+3. **QualitySelector** - Quality selection
+4. **ProgressTracker** - Real-time tracking
+5. **VideoPreview** - Content preview
 
-### Estados de Download
+### Download States
 
-- `idle` - Aguardando ação
-- `analyzing` - Analisando URL
-- `ready` - Pronto para download
-- `downloading` - Download em andamento
-- `completed` - Concluído com sucesso
-- `error` - Erro durante processo
+- `idle` - Waiting for action
+- `analyzing` - Analyzing URL
+- `ready` - Ready for download
+- `downloading` - Download in progress
+- `completed` - Successfully completed
+- `error` - Error during process
 
-## 🔍 Monitoramento e Logs
+## 🔍 Monitoring and Logs
 
-### Logs do Sistema
+### System Logs
 
 ```javascript
-// Início do processo
-console.log('🔍 Iniciando busca de informações para:', url);
+// Process start
+console.log('🔍 Starting information search for:', url);
 
-// Sucesso
-console.log('✅ YT-DLP sucesso!');
+// Success
+console.log('✅ YT-DLP success!');
 
-// Erro
-console.error('❌ Erro detalhado:', error.message);
+// Error
+console.error('❌ Detailed error:', error.message);
 ```
 
-### Métricas Importantes
+### Important Metrics
 
-- Taxa de sucesso de downloads
-- Tempo médio de processamento
-- Erros mais comuns
-- URLs problemáticas
+- Download success rate
+- Average processing time
+- Most common errors
+- Problematic URLs
 
-## 🚨 Problemas Comuns
+## 🚨 Common Issues
 
-### 1. **YT-DLP não encontrado**
+### 1. **YT-DLP not found**
 ```bash
-# Solução
+# Solution
 pip install yt-dlp
-# Verificar PATH
+# Check PATH
 which yt-dlp
 ```
 
-### 2. **Playlist vazia**
-- Verificar se playlist é pública
-- Testar com URL de vídeo individual
-- Atualizar YT-DLP
+### 2. **Empty playlist**
+- Check if playlist is public
+- Test with individual video URL
+- Update YT-DLP
 
-### 3. **Progresso não atualiza**
-- Verificar WebSocket
-- Fallback para polling ativado automaticamente
+### 3. **Progress not updating**
+- Check WebSocket
+- Fallback to polling activated automatically
 
-### 4. **Downloads lentos**
-- Verificar conexão de internet
-- Qualidade selecionada (lower = faster)
-- Limitações do YouTube
+### 4. **Slow downloads**
+- Check internet connection
+- Selected quality (lower = faster)
+- YouTube limitations
 
-## 🔧 Customizações
+## 🔧 Customizations
 
-### Adicionar Novos Formatos
+### Add New Formats
 
 ```javascript
-// Em ytdlpService.js
+// In ytdlpService.js
 const ytdlOptions = {
-  format: 'bestaudio[ext=m4a]', // Só áudio
-  // ou
-  format: 'best[height<=480]',   // Máximo 480p
+  format: 'bestaudio[ext=m4a]', // Audio only
+  // or
+  format: 'best[height<=480]',   // Maximum 480p
 };
 ```
 
-### Modificar Diretório de Download
+### Modify Download Directory
 
 ```javascript
-// Em ytdlpService.js
+// In ytdlpService.js
 this.downloadsPath = path.join(__dirname, '..', 'custom-downloads');
 ```
 
-### Adicionar Filtros
+### Add Filters
 
 ```javascript
-// Filtrar por duração
-if (info.duration > 3600) { // > 1 hora
-  throw new Error('Vídeo muito longo');
+// Filter by duration
+if (info.duration > 3600) { // > 1 hour
+  throw new Error('Video too long');
 }
 ```
 
 ## 📊 Performance
 
-### Otimizações Implementadas
+### Implemented Optimizations
 
-1. **Lazy Loading** - Componentes carregados sob demanda
-2. **Chunked Downloads** - Para playlists grandes
-3. **Progress Batching** - Atualizações eficientes
-4. **Error Recovery** - Retry automático
-5. **Resource Cleanup** - Limpeza de arquivos temporários
+1. **Lazy Loading** - Components loaded on demand
+2. **Chunked Downloads** - For large playlists
+3. **Progress Batching** - Efficient updates
+4. **Error Recovery** - Automatic retry
+5. **Resource Cleanup** - Temporary file cleanup
 
-### Limites Recomendados
+### Recommended Limits
 
-- **Vídeo individual:** Até 4GB
-- **Playlist:** Até 100 vídeos
-- **Concurrent downloads:** 3 simultâneos
-- **Timeout:** 30 minutos por vídeo
+- **Individual video:** Up to 4GB
+- **Playlist:** Up to 100 videos
+- **Concurrent downloads:** 3 simultaneous
+- **Timeout:** 30 minutes per video
 
-## 🔐 Segurança
+## 🔐 Security
 
-### Validações
+### Validations
 
-1. **URL Sanitization** - Remove caracteres perigosos
-2. **File Path Validation** - Previne directory traversal
-3. **User Authorization** - Apenas usuários autenticados
-4. **Rate Limiting** - Previne abuso
+1. **URL Sanitization** - Removes dangerous characters
+2. **File Path Validation** - Prevents directory traversal
+3. **User Authorization** - Only authenticated users
+4. **Rate Limiting** - Prevents abuse
 
-### Restrições
+### Restrictions
 
-- Apenas URLs do YouTube
-- Conteúdo público apenas
-- Respeitamos direitos autorais
-- Logs de auditoria mantidos
+- YouTube URLs only
+- Public content only
+- We respect copyright
+- Audit logs maintained
 
 ## 🎯 Roadmap
 
-### Funcionalidades Futuras
+### Future Features
 
-- [ ] Download de áudio apenas
-- [ ] Seleção de legendas
-- [ ] Agendamento de downloads
-- [ ] Compressão automática
-- [ ] Sincronização na nuvem
-- [ ] Download de canais completos
-- [ ] Conversão de formatos
+- [ ] Audio-only download
+- [ ] Subtitle selection
+- [ ] Scheduled downloads
+- [ ] Automatic compression
+- [ ] Cloud synchronization
+- [ ] Complete channel downloads
+- [ ] Format conversion
 
-### Melhorias Técnicas
+### Technical Improvements
 
-- [ ] Workers para downloads
-- [ ] Cache de metadados
+- [ ] Download workers
+- [ ] Metadata caching
 - [ ] Resumable downloads
 - [ ] Bandwidth limiting
 - [ ] Statistics dashboard

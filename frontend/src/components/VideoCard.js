@@ -131,7 +131,7 @@ function VideoCard({ video }) {
 
   return (
     <CardContainer>
-      <StyledLink to={`/watch/${video.id}`}>
+      <StyledLink to={`/watch-download/${video.id}`}>
         <ThumbnailContainer>
           <Thumbnail 
             src={video.thumbnail} 
@@ -156,7 +156,7 @@ function VideoCard({ video }) {
         </StyledLink>
         
         <VideoDetails>
-          <StyledLink to={`/watch/${video.id}`}>
+          <StyledLink to={`/watch-download/${video.id}`}>
             <VideoTitle>{video.title}</VideoTitle>
           </StyledLink>
           

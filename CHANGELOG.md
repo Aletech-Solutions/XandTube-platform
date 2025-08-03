@@ -1,265 +1,265 @@
-# XandTube - Changelog Completo
+# XandTube - Complete Changelog
 
-## Versão 1.0.0 - Release Inicial
-**Data:** Janeiro 2024
+## Version 1.0.0 - Initial Release
+**Date:** January 2024
 
-Este changelog documenta toda a implementação inicial do XandTube, um clone completo do YouTube desenvolvido com Node.js e React.
+This changelog documents the complete initial implementation of XandTube, a full YouTube clone developed with Node.js and React.
 
 ---
 
-## 🏗️ Estrutura do Projeto
+## 🏗️ Project Structure
 
-### ✅ Arquitetura Geral
+### ✅ General Architecture
 - **Backend:** Node.js + Express.js
 - **Frontend:** React 18 + React Router DOM
 - **Styling:** Styled Components
-- **Upload:** Multer para arquivos
-- **Comunicação:** Axios para requisições HTTP
-- **Estrutura:** Monorepo com backend e frontend separados
+- **Upload:** Multer for file handling
+- **Communication:** Axios for HTTP requests
+- **Structure:** Monorepo with separate backend and frontend
 
-### ✅ Organização de Diretórios
+### ✅ Directory Organization
 ```
 XandTube/
-├── backend/           # API Node.js/Express
-│   ├── routes/        # Rotas da API
-│   ├── package.json   # Dependências do backend
-│   └── server.js      # Servidor principal
-├── frontend/          # Interface React
+├── backend/           # Node.js/Express API
+│   ├── routes/        # API routes
+│   ├── package.json   # Backend dependencies
+│   └── server.js      # Main server
+├── frontend/          # React interface
 │   ├── src/
-│   │   ├── components/  # Componentes reutilizáveis
-│   │   ├── pages/       # Páginas da aplicação
-│   │   ├── services/    # Serviços de API
-│   │   └── utils/       # Utilitários
-│   └── package.json   # Dependências do frontend
-├── videos/            # Armazenamento de vídeos
-│   ├── metadata/      # Metadados JSON (formato yt-dlp)
-│   └── README.md      # Documentação da pasta
-├── docs/              # Documentação da API
-└── package.json       # Scripts raiz do projeto
+│   │   ├── components/  # Reusable components
+│   │   ├── pages/       # Application pages
+│   │   ├── services/    # API services
+│   │   └── utils/       # Utilities
+│   └── package.json   # Frontend dependencies
+├── videos/            # Video storage
+│   ├── metadata/      # JSON metadata (yt-dlp format)
+│   └── README.md      # Folder documentation
+├── docs/              # API documentation
+└── package.json       # Root project scripts
 ```
 
 ---
 
-## 🎯 Backend - API REST Completa
+## 🎯 Backend - Complete REST API
 
-### ✅ Servidor e Configuração
+### ✅ Server and Configuration
 - **Framework:** Express.js 4.18.2
 - **Middleware:** CORS, body-parser, express.static
-- **Variáveis de Ambiente:** dotenv para configuração
-- **Porta:** 3001 (configurável via .env)
-- **Arquivos Estáticos:** Servir vídeos via express.static
+- **Environment Variables:** dotenv for configuration
+- **Port:** 3001 (configurable via .env)
+- **Static Files:** Serve videos via express.static
 
-### ✅ Sistema de Rotas
-Implementação de 3 módulos principais de rotas:
+### ✅ Route System
+Implementation of 3 main route modules:
 
-#### 📹 Rotas de Vídeos (`/api/videos`)
-- **GET /videos** - Listar vídeos com paginação e filtros
-  - Parâmetros: `limit`, `offset`, `search`, `channel`
-  - Suporte a busca por título, descrição e tags
-  - Paginação com `hasMore` indicator
-- **GET /videos/:id** - Obter vídeo específico
-  - Incrementa automaticamente contador de views
-  - Tratamento de erro 404 para vídeos não encontrados
-- **POST /videos** - Upload de vídeos
-  - Suporte a multipart/form-data
-  - Validação de formato e tamanho (100MB limite)
-  - Geração automática de UUID para nomes únicos
-  - Criação de metadados JSON no formato yt-dlp
-- **PUT /videos/:id/like** - Sistema de likes
-- **PUT /videos/:id/dislike** - Sistema de dislikes
-- **GET /videos/:id/thumbnail** - Thumbnails (mock com placeholder)
-- **DELETE /videos/:id** - Remoção de vídeos
+#### 📹 Video Routes (`/api/videos`)
+- **GET /videos** - List videos with pagination and filters
+  - Parameters: `limit`, `offset`, `search`, `channel`
+  - Support for search by title, description and tags
+  - Pagination with `hasMore` indicator
+- **GET /videos/:id** - Get specific video
+  - Automatically increments view counter
+  - 404 error handling for missing videos
+- **POST /videos** - Video upload
+  - Support for multipart/form-data
+  - Format and size validation (100MB limit)
+  - Automatic UUID generation for unique names
+  - JSON metadata creation in yt-dlp format
+- **PUT /videos/:id/like** - Like system
+- **PUT /videos/:id/dislike** - Dislike system
+- **GET /videos/:id/thumbnail** - Thumbnails (mock with placeholder)
+- **DELETE /videos/:id** - Video removal
 
-#### 📺 Rotas de Canais (`/api/channels`)
-- **GET /channels** - Listar canais com busca e paginação
-- **GET /channels/:id** - Obter canal específico
-- **POST /channels** - Criação de novos canais
-  - Validação de nomes únicos
-  - Geração automática de avatar e banner URLs
-- **PUT /channels/:id** - Atualização de canais
-- **PUT /channels/:id/subscribe** - Sistema de inscrições
-- **PUT /channels/:id/unsubscribe** - Cancelar inscrições
-- **GET /channels/:id/avatar** - Avatar do canal (mock)
-- **GET /channels/:id/banner** - Banner do canal (mock)
-- **DELETE /channels/:id** - Remoção de canais
+#### 📺 Channel Routes (`/api/channels`)
+- **GET /channels** - List channels with search and pagination
+- **GET /channels/:id** - Get specific channel
+- **POST /channels** - Create new channels
+  - Unique name validation
+  - Automatic avatar and banner URL generation
+- **PUT /channels/:id** - Update channels
+- **PUT /channels/:id/subscribe** - Subscription system
+- **PUT /channels/:id/unsubscribe** - Cancel subscriptions
+- **GET /channels/:id/avatar** - Channel avatar (mock)
+- **GET /channels/:id/banner** - Channel banner (mock)
+- **DELETE /channels/:id** - Channel removal
 
-#### 💬 Rotas de Comentários (`/api/comments`)
-- **GET /comments/:videoId** - Listar comentários por vídeo
-  - Ordenação: newest, oldest, popular
-  - Paginação completa
-- **POST /comments** - Adicionar comentários
-  - Suporte a comentários principais e respostas
-  - Validação de conteúdo não vazio
-- **PUT /comments/:id/like** - Curtir comentários
-- **PUT /comments/:id/dislike** - Descurtir comentários
-- **DELETE /comments/:id** - Remover comentários e respostas
+#### 💬 Comment Routes (`/api/comments`)
+- **GET /comments/:videoId** - List comments by video
+  - Sorting: newest, oldest, popular
+  - Complete pagination
+- **POST /comments** - Add comments
+  - Support for main comments and replies
+  - Non-empty content validation
+- **PUT /comments/:id/like** - Like comments
+- **PUT /comments/:id/dislike** - Dislike comments
+- **DELETE /comments/:id** - Remove comments and replies
 
-### ✅ Sistema de Upload e Armazenamento
-- **Multer Configuration:** Upload seguro com validação
-- **Formatos Suportados:** MP4, AVI, MKV, MOV, WMV, FLV, WebM
-- **Limite de Tamanho:** 100MB por arquivo
-- **Armazenamento:** Pasta `/videos` com subpasta `/metadata`
-- **Nomenclatura:** UUIDs para evitar conflitos
-- **Metadados:** JSON automático no estilo yt-dlp
+### ✅ Upload and Storage System
+- **Multer Configuration:** Secure upload with validation
+- **Supported Formats:** MP4, AVI, MKV, MOV, WMV, FLV, WebM
+- **Size Limit:** 100MB per file
+- **Storage:** `/videos` folder with `/metadata` subfolder
+- **Naming:** UUIDs to avoid conflicts
+- **Metadata:** Automatic JSON in yt-dlp style
 
-### ✅ Mock Data Sistema
-Dados de demonstração incluindo:
-- **2 Vídeos de Exemplo:** Com metadados completos
-- **2 Canais de Exemplo:** Com estatísticas realistas
-- **Comentários e Respostas:** Sistema hierárquico completo
+### ✅ Mock Data System
+Demo data including:
+- **2 Example Videos:** With complete metadata
+- **2 Example Channels:** With realistic statistics
+- **Comments and Replies:** Complete hierarchical system
 
-### ✅ Tratamento de Erros
-- **Middleware de Erro:** Captura global de exceções
-- **404 Handler:** Para rotas não encontradas
-- **Validação de Dados:** Verificação de campos obrigatórios
-- **Logging:** console.error para debugging
+### ✅ Error Handling
+- **Error Middleware:** Global exception capture
+- **404 Handler:** For routes not found
+- **Data Validation:** Required field verification
+- **Logging:** console.error for debugging
 
 ---
 
-## 🎨 Frontend - Interface Completa
+## 🎨 Frontend - Complete Interface
 
-### ✅ Configuração React
-- **React 18.2.0:** Hooks e componentes funcionais
-- **React Router DOM 6.15.0:** Roteamento SPA
+### ✅ React Configuration
+- **React 18.2.0:** Hooks and functional components
+- **React Router DOM 6.15.0:** SPA routing
 - **Styled Components 6.0.7:** CSS-in-JS
-- **Axios 1.5.0:** Cliente HTTP
-- **React Icons 4.11.0:** Ícones consistentes
+- **Axios 1.5.0:** HTTP client
+- **React Icons 4.11.0:** Consistent icons
 
-### ✅ Estrutura de Componentes
+### ✅ Component Structure
 
-#### 🎛️ Componentes Base
-- **Header.js:** Navegação principal
-  - Logo do XandTube
-  - Barra de busca funcional
-  - Botões de ação (Upload, Criar Canal)
-  - Design responsivo
-- **Sidebar.js:** Menu lateral
-  - Navegação por seções
-  - Links para páginas principais
-  - Estado ativo visual
-  - Ocultação em mobile
-- **VideoCard.js:** Card de vídeo
-  - Thumbnail com duração overlay
-  - Informações do vídeo (título, canal, views, data)
-  - Avatar do canal
-  - Formatação inteligente de números
-  - Links para vídeo e canal
-- **VideoGrid.js:** Grid responsivo de vídeos
-  - Layout adaptativo (CSS Grid)
-  - Estados de loading e erro
-  - Mensagem para "nenhum vídeo encontrado"
-- **ErrorBoundary.js:** Tratamento de erros React
-  - Captura de erros não tratados
-  - Interface de erro amigável
-  - Opção de reload
+#### 🎛️ Base Components
+- **Header.js:** Main navigation
+  - XandTube logo
+  - Functional search bar
+  - Action buttons (Upload, Create Channel)
+  - Responsive design
+- **Sidebar.js:** Side menu
+  - Section navigation
+  - Links to main pages
+  - Visual active state
+  - Hidden on mobile
+- **VideoCard.js:** Video card
+  - Thumbnail with duration overlay
+  - Video information (title, channel, views, date)
+  - Channel avatar
+  - Smart number formatting
+  - Links to video and channel
+- **VideoGrid.js:** Responsive video grid
+  - Adaptive layout (CSS Grid)
+  - Loading and error states
+  - Message for "no videos found"
+- **ErrorBoundary.js:** React error handling
+  - Unhandled error capture
+  - User-friendly error interface
+  - Reload option
 
-### ✅ Páginas Principais
+### ✅ Main Pages
 
 #### 🏠 HomePage.js
-- **Grid de Vídeos:** Exibição responsiva
-- **Sistema de Busca:** Integração com query params
-- **Paginação:** "Carregar mais" com indicador
-- **Estados:** Loading, erro, vazio
-- **Filtros:** Busca por termo
+- **Video Grid:** Responsive display
+- **Search System:** Query params integration
+- **Pagination:** "Load more" with indicator
+- **States:** Loading, error, empty
+- **Filters:** Search by term
 
 #### 📹 VideoPage.js
-- **Player de Vídeo:** HTML5 video com controles
-- **Informações Completas:** Título, descrição, estatísticas
-- **Sistema de Interação:** Like, dislike, compartilhar
-- **Canal:** Info, avatar, botão de inscrição
-- **Comentários:** Listagem com contadores
-- **Sidebar:** Vídeos relacionados (placeholder)
-- **Estados de Erro:** Vídeo não encontrado
+- **Video Player:** HTML5 video with controls
+- **Complete Information:** Title, description, statistics
+- **Interaction System:** Like, dislike, share
+- **Channel:** Info, avatar, subscribe button
+- **Comments:** Listing with counters
+- **Sidebar:** Related videos (placeholder)
+- **Error States:** Video not found
 
 #### 📺 ChannelPage.js
-- **Header do Canal:** Banner, avatar, informações
-- **Abas:** Vídeos, Playlists, Sobre
-- **Estatísticas:** Inscritos, views, vídeos
-- **Botão de Inscrição:** Estado dinâmico
-- **Grid de Vídeos:** Filtrado por canal
-- **Página Sobre:** Informações detalhadas
+- **Channel Header:** Banner, avatar, information
+- **Tabs:** Videos, Playlists, About
+- **Statistics:** Subscribers, views, videos
+- **Subscribe Button:** Dynamic state
+- **Video Grid:** Filtered by channel
+- **About Page:** Detailed information
 
 #### 📤 UploadPage.js
-- **Drag & Drop:** Interface intuitiva para upload
-- **Validação:** Formato e tamanho de arquivo
-- **Formulário Completo:** Título, descrição, canal, tags
-- **Seleção de Canal:** Dropdown dinâmico
-- **Preview:** Informações do arquivo selecionado
-- **Estados:** Upload, sucesso, erro
-- **Auto-preenchimento:** Título baseado no nome do arquivo
+- **Drag & Drop:** Intuitive upload interface
+- **Validation:** File format and size
+- **Complete Form:** Title, description, channel, tags
+- **Channel Selection:** Dynamic dropdown
+- **Preview:** Selected file information
+- **States:** Upload, success, error
+- **Auto-fill:** Title based on filename
 
 #### ➕ CreateChannelPage.js
-- **Formulário de Criação:** Nome e descrição
-- **Validação:** Nomes únicos e tamanho mínimo
-- **Diretrizes:** Regras claras para criação
-- **Contador de Caracteres:** Limite visual
-- **Estados:** Criação, sucesso, erro de conflito
+- **Creation Form:** Name and description
+- **Validation:** Unique names and minimum size
+- **Guidelines:** Clear creation rules
+- **Character Counter:** Visual limit
+- **States:** Creation, success, conflict error
 
 #### ❌ NotFoundPage.js
-- **Design Atrativo:** Erro 404 estilizado
-- **Navegação:** Botões para páginas principais
-- **Sugestões:** Lista de ações úteis
-- **Responsivo:** Adaptação mobile
+- **Attractive Design:** Stylized 404 error
+- **Navigation:** Buttons to main pages
+- **Suggestions:** List of useful actions
+- **Responsive:** Mobile adaptation
 
-### ✅ Serviços e Utilitários
+### ✅ Services and Utilities
 
 #### 🔌 API Service (api.js)
-- **Configuração Axios:** Base URL e timeout
-- **Interceptors:** Logging automático de erros
-- **Módulos Organizados:**
-  - `videosAPI`: Todas as operações de vídeo
-  - `channelsAPI`: Gerenciamento de canais
-  - `commentsAPI`: Sistema de comentários
-- **Health Check:** Verificação do backend
+- **Axios Configuration:** Base URL and timeout
+- **Interceptors:** Automatic error logging
+- **Organized Modules:**
+  - `videosAPI`: All video operations
+  - `channelsAPI`: Channel management
+  - `commentsAPI`: Comment system
+- **Health Check:** Backend verification
 
 #### 🛠️ Data Handlers (dataHandlers.js)
-- **Tratamento de Dados Ausentes:** Fallbacks seguros
-- **Validação:** Verificação de dados válidos
-- **Formatação:** Números, datas, views, inscritos
-- **Estados de Erro:** Mensagens padronizadas
-- **Hook Personalizado:** useApiError para tratamento
+- **Missing Data Handling:** Safe fallbacks
+- **Validation:** Valid data verification
+- **Formatting:** Numbers, dates, views, subscribers
+- **Error States:** Standardized messages
+- **Custom Hook:** useApiError for handling
 
-### ✅ Estilização e UX
+### ✅ Styling and UX
 
 #### 🎨 Design System
-- **Tema Dark:** Paleta inspirada no YouTube
-- **Cores Principais:**
+- **Dark Theme:** YouTube-inspired palette
+- **Main Colors:**
   - Background: #181818, #202020, #272727
-  - Texto: #ffffff, #aaaaaa
-  - Accent: #ff0000 (vermelho YouTube)
-  - Links: #065fd4 (azul YouTube)
-- **Typography:** Sans-serif responsiva
-- **Spacing:** Grid system consistente
+  - Text: #ffffff, #aaaaaa
+  - Accent: #ff0000 (YouTube red)
+  - Links: #065fd4 (YouTube blue)
+- **Typography:** Responsive sans-serif
+- **Spacing:** Consistent grid system
 
-#### 📱 Responsividade
-- **Mobile First:** Design adaptativo
-- **Breakpoints:** 768px para mobile/desktop
-- **Grid Responsivo:** auto-fill minmax
-- **Sidebar:** Ocultação em mobile
-- **Forms:** Adaptação de layout
+#### 📱 Responsiveness
+- **Mobile First:** Adaptive design
+- **Breakpoints:** 768px for mobile/desktop
+- **Responsive Grid:** auto-fill minmax
+- **Sidebar:** Hidden on mobile
+- **Forms:** Layout adaptation
 
-#### ♿ Acessibilidade
-- **Semantic HTML:** Estrutura semântica
-- **Alt Text:** Imagens descritivas
-- **Focus States:** Indicadores visuais
-- **ARIA Labels:** Acessibilidade de tela
-- **Color Contrast:** Contraste adequado
+#### ♿ Accessibility
+- **Semantic HTML:** Semantic structure
+- **Alt Text:** Descriptive images
+- **Focus States:** Visual indicators
+- **ARIA Labels:** Screen accessibility
+- **Color Contrast:** Adequate contrast
 
 ---
 
-## 🗂️ Sistema de Armazenamento
+## 🗂️ Storage System
 
-### ✅ Estrutura de Vídeos
-- **Pasta Principal:** `/videos`
-- **Metadados:** `/videos/metadata/`
-- **Nomenclatura:** UUID.ext para arquivos, UUID.json para metadados
-- **Formato JSON:** Compatível com yt-dlp
-- **Campos Inclusos:**
-  - Informações básicas (título, descrição, tags)
-  - Estatísticas (views, likes, dislikes)
-  - Canal (ID, nome)
-  - Timestamps (upload, criação)
-  - Arquivo (size, mimetype, nome original)
+### ✅ Video Structure
+- **Main Folder:** `/videos`
+- **Metadata:** `/videos/metadata/`
+- **Naming:** UUID.ext for files, UUID.json for metadata
+- **JSON Format:** Compatible with yt-dlp
+- **Included Fields:**
+  - Basic information (title, description, tags)
+  - Statistics (views, likes, dislikes)
+  - Channel (ID, name)
+  - Timestamps (upload, creation)
+  - File (size, mimetype, original name)
 
 ### ✅ Mock Data Structure
 ```json
@@ -282,81 +282,81 @@ Dados de demonstração incluindo:
 
 ---
 
-## 📚 Documentação Completa
+## 📚 Complete Documentation
 
-### ✅ Documentação da API
-- **Formato Postman:** Collection JSON importável
-- **Markdown:** Documentação detalhada
-- **Exemplos:** Requests e responses completos
-- **Códigos de Erro:** Documentação de todos os status
-- **Parâmetros:** Descrição detalhada de cada campo
+### ✅ API Documentation
+- **Postman Format:** Importable JSON collection
+- **Markdown:** Detailed documentation
+- **Examples:** Complete requests and responses
+- **Error Codes:** Documentation of all status codes
+- **Parameters:** Detailed description of each field
 
 ### ✅ Postman Collection
-**Arquivo:** `docs/XandTube-API.postman_collection.json`
-- **37 Endpoints:** Todos documentados
-- **Variáveis:** Base URL e IDs configuráveis
-- **Exemplos de Response:** Success e error cases
-- **Organização:** Agrupado por funcionalidade
-- **Descrições:** Contexto e uso de cada endpoint
+**File:** `docs/XandTube-API.postman_collection.json`
+- **37 Endpoints:** All documented
+- **Variables:** Configurable base URL and IDs
+- **Response Examples:** Success and error cases
+- **Organization:** Grouped by functionality
+- **Descriptions:** Context and usage of each endpoint
 
-### ✅ README Principal
-- **Overview:** Descrição completa do projeto
-- **Setup:** Instruções de instalação e execução
-- **Estrutura:** Mapeamento de diretórios
-- **Tecnologias:** Stack completa documentada
-- **Features:** Lista de funcionalidades
+### ✅ Main README
+- **Overview:** Complete project description
+- **Setup:** Installation and execution instructions
+- **Structure:** Directory mapping
+- **Technologies:** Complete stack documented
+- **Features:** Functionality list
 
 ---
 
-## ⚡ Features Implementadas
+## ⚡ Implemented Features
 
-### 🎥 Sistema de Vídeos
-- ✅ Upload de vídeos (drag & drop)
-- ✅ Reprodução com player HTML5
-- ✅ Sistema de likes/dislikes
-- ✅ Contador de visualizações
+### 🎥 Video System
+- ✅ Video upload (drag & drop)
+- ✅ HTML5 player playback
+- ✅ Likes/dislikes system
+- ✅ View counter
 - ✅ Thumbnails (mock)
-- ✅ Duração e metadados
-- ✅ Tags e categorização
-- ✅ Busca e filtros
-- ✅ Paginação
+- ✅ Duration and metadata
+- ✅ Tags and categorization
+- ✅ Search and filters
+- ✅ Pagination
 
-### 📺 Sistema de Canais
-- ✅ Criação de canais
-- ✅ Perfis com avatar/banner
-- ✅ Sistema de inscrições
-- ✅ Estatísticas (inscritos, views, vídeos)
-- ✅ Páginas de canal com abas
-- ✅ Listagem de vídeos por canal
+### 📺 Channel System
+- ✅ Channel creation
+- ✅ Profiles with avatar/banner
+- ✅ Subscription system
+- ✅ Statistics (subscribers, views, videos)
+- ✅ Channel pages with tabs
+- ✅ Video listing by channel
 
-### 💬 Sistema de Comentários
-- ✅ Comentários em vídeos
-- ✅ Sistema de respostas (threads)
-- ✅ Likes/dislikes em comentários
-- ✅ Ordenação (recente, antigo, popular)
-- ✅ Paginação de comentários
-- ✅ Avatars de usuários
+### 💬 Comment System
+- ✅ Video comments
+- ✅ Reply system (threads)
+- ✅ Likes/dislikes on comments
+- ✅ Sorting (recent, old, popular)
+- ✅ Comment pagination
+- ✅ User avatars
 
-### 🔍 Busca e Navegação
-- ✅ Busca global por vídeos
-- ✅ Filtros por canal
-- ✅ Navegação por categorias
-- ✅ Histórico de URL (query params)
-- ✅ Breadcrumbs e estados ativos
+### 🔍 Search and Navigation
+- ✅ Global video search
+- ✅ Channel filters
+- ✅ Category navigation
+- ✅ URL history (query params)
+- ✅ Breadcrumbs and active states
 
-### 🎨 Interface e UX
-- ✅ Design responsivo completo
-- ✅ Tema dark (estilo YouTube)
-- ✅ Estados de loading e erro
-- ✅ Animações e transições
+### 🎨 Interface and UX
+- ✅ Complete responsive design
+- ✅ Dark theme (YouTube style)
+- ✅ Loading and error states
+- ✅ Animations and transitions
 - ✅ Error boundaries
-- ✅ Tratamento de dados ausentes
+- ✅ Missing data handling
 
 ---
 
-## 🛠️ Configuração e Scripts
+## 🛠️ Configuration and Scripts
 
-### ✅ Scripts Disponíveis
+### ✅ Available Scripts
 ```json
 {
   "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
@@ -366,7 +366,7 @@ Dados de demonstração incluindo:
 }
 ```
 
-### ✅ Variáveis de Ambiente
+### ✅ Environment Variables
 **Backend (.env):**
 ```
 PORT=3001
@@ -400,115 +400,115 @@ GENERATE_SOURCEMAP=false
 
 ---
 
-## 🚀 Como Executar
+## 🚀 How to Run
 
-### ✅ Pré-requisitos
+### ✅ Prerequisites
 - Node.js 16+
-- npm ou yarn
+- npm or yarn
 
-### ✅ Instalação
+### ✅ Installation
 ```bash
-# Instalar todas as dependências
+# Install all dependencies
 npm run install-all
 
-# Executar tudo simultaneamente
+# Run everything simultaneously
 npm run dev
 ```
 
-### ✅ Acessos
+### ✅ Access
 - **Frontend:** http://localhost:3000
 - **Backend:** http://localhost:3001
 - **API Docs:** http://localhost:3001/api/health
 
 ---
 
-## 🎯 Tratamento de Erros
+## 🎯 Error Handling
 
 ### ✅ Frontend
-- **Error Boundaries:** Captura de erros React
-- **API Errors:** Interceptors com logging
-- **Loading States:** Indicadores visuais
-- **Empty States:** Mensagens quando sem dados
-- **404 Pages:** Páginas não encontradas
-- **Network Errors:** Tratamento de conexão
+- **Error Boundaries:** React error capture
+- **API Errors:** Interceptors with logging
+- **Loading States:** Visual indicators
+- **Empty States:** Messages when no data
+- **404 Pages:** Pages not found
+- **Network Errors:** Connection handling
 
 ### ✅ Backend
-- **Global Error Handler:** Middleware de captura
-- **404 Handler:** Rotas não encontradas
-- **Validation Errors:** Dados inválidos
-- **File Upload Errors:** Problemas de upload
-- **Database Errors:** Simulação de erros de DB
+- **Global Error Handler:** Capture middleware
+- **404 Handler:** Routes not found
+- **Validation Errors:** Invalid data
+- **File Upload Errors:** Upload problems
+- **Database Errors:** DB error simulation
 
 ---
 
-## 📊 Estatísticas do Projeto
+## 📊 Project Statistics
 
-### ✅ Arquivos Criados
-- **Backend:** 6 arquivos principais
-- **Frontend:** 15+ componentes e páginas
-- **Documentação:** 4 arquivos
-- **Configuração:** 8 arquivos de config
-- **Total:** 35+ arquivos implementados
+### ✅ Created Files
+- **Backend:** 6 main files
+- **Frontend:** 15+ components and pages
+- **Documentation:** 4 files
+- **Configuration:** 8 config files
+- **Total:** 35+ implemented files
 
-### ✅ Linhas de Código (Estimativa)
-- **Backend:** ~800 linhas
-- **Frontend:** ~2000+ linhas
-- **Documentação:** ~500 linhas
-- **Total:** 3300+ linhas
+### ✅ Lines of Code (Estimate)
+- **Backend:** ~800 lines
+- **Frontend:** ~2000+ lines
+- **Documentation:** ~500 lines
+- **Total:** 3300+ lines
 
-### ✅ Funcionalidades
-- **37 Endpoints API:** Totalmente documentados
-- **8 Páginas Frontend:** Interface completa
-- **10+ Componentes:** Reutilizáveis
-- **3 Sistemas Principais:** Vídeos, Canais, Comentários
+### ✅ Features
+- **37 API Endpoints:** Fully documented
+- **8 Frontend Pages:** Complete interface
+- **10+ Components:** Reusable
+- **3 Main Systems:** Videos, Channels, Comments
 
 ---
 
-## 🔮 Próximos Passos (Roadmap)
+## 🔮 Next Steps (Roadmap)
 
-### 🔄 Melhorias Futuras
-- [ ] Banco de dados real (PostgreSQL/MongoDB)
-- [ ] Autenticação e autorização
-- [ ] Processamento de vídeo (FFmpeg)
-- [ ] Thumbnails automáticas
-- [ ] Sistema de notificações
-- [ ] Playlists e favoritos
-- [ ] Streaming adaptativo
-- [ ] Analytics avançados
-- [ ] Comentários em tempo real
-- [ ] Moderação de conteúdo
+### 🔄 Future Improvements
+- [ ] Real database (PostgreSQL/MongoDB)
+- [ ] Authentication and authorization
+- [ ] Video processing (FFmpeg)
+- [ ] Automatic thumbnails
+- [ ] Notification system
+- [ ] Playlists and favorites
+- [ ] Adaptive streaming
+- [ ] Advanced analytics
+- [ ] Real-time comments
+- [ ] Content moderation
 
-### 🧪 Testes
-- [ ] Testes unitários (Jest)
-- [ ] Testes de integração
-- [ ] Testes e2e (Cypress)
-- [ ] Testes de performance
+### 🧪 Testing
+- [ ] Unit tests (Jest)
+- [ ] Integration tests
+- [ ] e2e tests (Cypress)
+- [ ] Performance tests
 
-### 🚀 Deploy
-- [ ] Containerização (Docker)
+### 🚀 Deployment
+- [ ] Containerization (Docker)
 - [ ] CI/CD Pipeline
 - [ ] Cloud deployment
-- [ ] CDN para vídeos
-- [ ] Monitoramento
+- [ ] CDN for videos
+- [ ] Monitoring
 
 ---
 
-## 📝 Conclusão
+## 📝 Conclusion
 
-O XandTube foi implementado como um **clone completo e funcional do YouTube**, incluindo todas as funcionalidades principais solicitadas:
+XandTube has been implemented as a **complete and functional YouTube clone**, including all the requested main features:
 
-✅ **Backend completo** com API REST  
-✅ **Frontend React** com interface similar ao YouTube  
-✅ **Sistema de upload** de vídeos  
-✅ **Gerenciamento de canais** e inscrições  
-✅ **Sistema de comentários** hierárquico  
-✅ **Tratamento robusto** de dados ausentes  
-✅ **Documentação completa** da API  
-✅ **Código bem estruturado** e comentado  
+✅ **Complete backend** with REST API  
+✅ **React frontend** with YouTube-like interface  
+✅ **Video upload system**  
+✅ **Channel management** and subscriptions  
+✅ **Hierarchical comment system**  
+✅ **Robust handling** of missing data  
+✅ **Complete API documentation**  
+✅ **Well-structured and commented code**  
 
-O projeto demonstra uma arquitetura sólida, código limpo e uma experiência de usuário polida, servindo como base excelente para futuras expansões e melhorias.
+The project demonstrates solid architecture, clean code, and a polished user experience, serving as an excellent foundation for future expansions and improvements.
 
 ---
 
-**Desenvolvido com ❤️ para o XandTube Project**  
-*Total de funcionalidades implementadas: 100%*
+**Developed with ❤️ for the XandTube Project**  
+*Total implemented features: 100%*

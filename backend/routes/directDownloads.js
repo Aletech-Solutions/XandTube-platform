@@ -11,7 +11,7 @@ const { authenticateToken } = require('../middleware/auth');
  */
 router.get('/debug', async (req, res) => {
   try {
-    const { page = 1, limit = 20, search } = req.query;
+    const { page = 1, limit = 10, search } = req.query;
     
     let result;
     if (search) {
@@ -33,7 +33,7 @@ router.get('/debug', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
-    const { page = 1, limit = 20, search } = req.query;
+    const { page = 1, limit = 10, search } = req.query;
     // Downloads são públicos - não filtrar por usuário
     const userId = null;
 
@@ -58,7 +58,7 @@ router.get('/', async (req, res) => {
 router.get('/all', authenticateToken, async (req, res) => {
   try {
     // TODO: Verificar se usuário é admin
-    const { page = 1, limit = 20, search } = req.query;
+    const { page = 1, limit = 10, search } = req.query;
 
     let result;
     if (search) {
@@ -206,7 +206,7 @@ router.get('/:id/thumbnail', async (req, res) => {
     }
 
     res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache por 24h
+    res.setHeader('Cache-Control', 'public, max-age=1800'); // Cache por 30 minutos
     
     fs.createReadStream(thumbnailPath).pipe(res);
 
@@ -266,6 +266,62 @@ router.get('/scan/folder', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao escanear pasta:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+/**
+ * POST /api/direct-downloads/cache/clear
+ * Limpa o cache de downloads (força reconstrução)
+ */
+router.post('/cache/clear', async (req, res) => {
+  try {
+    await directDownloadService.clearCache();
+    
+    res.json({
+      message: 'Cache limpo com sucesso',
+      note: 'O cache será reconstruído na próxima consulta'
+    });
+  } catch (error) {
+    console.error('Erro ao limpar cache:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+/**
+ * GET /api/direct-downloads/cache/status
+ * Verifica o status do cache
+ */
+router.get('/cache/status', async (req, res) => {
+  try {
+    const fs = require('fs-extra');
+    const path = require('path');
+    const cacheFilePath = path.join(__dirname, '../../videos/downloads-cache.json');
+    
+    let cacheInfo = {
+      exists: false,
+      size: 0,
+      lastModified: null,
+      totalDownloads: 0
+    };
+    
+    if (await fs.pathExists(cacheFilePath)) {
+      const stats = await fs.stat(cacheFilePath);
+      const cacheData = await fs.readJson(cacheFilePath);
+      
+      cacheInfo = {
+        exists: true,
+        size: stats.size,
+        sizeFormatted: `${(stats.size / 1024 / 1024).toFixed(2)} MB`,
+        lastModified: stats.mtime.toISOString(),
+        lastUpdated: cacheData.lastUpdated,
+        totalDownloads: cacheData.totalDownloads || 0
+      };
+    }
+    
+    res.json(cacheInfo);
+  } catch (error) {
+    console.error('Erro ao verificar status do cache:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });

@@ -8,7 +8,8 @@ import {
   FaThumbsUp,
   FaDownload,
   FaFilm,
-  FaYoutube
+  FaYoutube,
+  FaUsers
 } from 'react-icons/fa';
 
 const SidebarContainer = styled.aside`
@@ -93,18 +94,18 @@ function Sidebar() {
           <FaFire />
           Em alta
         </SidebarItem>
+        
+        <SidebarItem 
+          to="/channels" 
+          className={isActive('/channels') ? 'active' : ''}
+        >
+          <FaUsers />
+          Canais
+        </SidebarItem>
       </SidebarSection>
       
       <SidebarSection>
         <SidebarTitle>Biblioteca</SidebarTitle>
-        
-        <SidebarItem 
-          to="/history" 
-          className={isActive('/history') ? 'active' : ''}
-        >
-          <FaHistory />
-          Histórico
-        </SidebarItem>
         
         <SidebarItem 
           to="/liked" 

@@ -1,4 +1,4 @@
-# 📋 Sistema de Downloads Direto - XandTube
+# 📋 Direct Downloads System - XandTube
 
 ## 🎯 **Visão Geral**
 
@@ -17,13 +17,13 @@ O XandTube agora conta com um **sistema revolucionário de gerenciamento de down
 - **🎮 Streaming**: Serve vídeos diretamente com suporte a range requests
 - **🖼️ Thumbnails**: Serve miniaturas dos vídeos baixados
 
-### ✅ **Frontend - Interface Rica**
-- **🎨 DownloadCard**: Componente visual para cada download
-- **🏠 HomePage**: Exibe downloads recentes na página inicial
-- **📚 HistoricoPage**: Página dedicada ao histórico completo
-- **🔍 Busca**: Sistema de busca integrado
-- **▶️ Player**: Assistir vídeos diretamente do navegador
-- **🗑️ Gestão**: Deletar downloads com confirmação
+### ✅ **Frontend - Rich Interface**
+- **🎨 DownloadCard**: Visual component for each download
+- **🏠 HomePage**: Shows recent downloads on home page
+- **📚 HistoricoPage**: Dedicated page for complete history
+- **🔍 Search**: Integrated search system
+- **▶️ Player**: Watch videos directly from browser
+- **🗑️ Management**: Delete downloads with confirmation
 
 ---
 
@@ -76,7 +76,7 @@ GET /api/direct-downloads/scan/folder
 
 ---
 
-## 🎬 **Como Funciona**
+## 🎬 **How It Works**
 
 ### **1. Download via yt-dlp**
 ```bash
@@ -86,29 +86,29 @@ yt-dlp "https://youtube.com/watch?v=VIDEO_ID" \
   --write-thumbnail
 ```
 
-### **2. Detecção Automática**
-- Sistema escaneia pasta `/videos/downloads`
-- Identifica arquivos `.info.json`
-- Processa metadados automaticamente
-- Localiza vídeos e thumbnails correspondentes
+### **2. Automatic Detection**
+- System scans `/videos/downloads` folder
+- Identifies `.info.json` files
+- Processes metadata automatically
+- Locates corresponding videos and thumbnails
 
-### **3. Exibição na Interface**
-- HomePage mostra 6 downloads mais recentes
-- HistoricoPage exibe todos com paginação
-- Busca em tempo real por título/canal
-- Cards ricos com informações completas
+### **3. Interface Display**
+- HomePage shows 6 most recent downloads
+- HistoricoPage displays all with pagination
+- Real-time search by title/channel
+- Rich cards with complete information
 
 ---
 
-## 📈 **Metadados Processados**
+## 📈 **Processed Metadata**
 
-O sistema extrai automaticamente:
+The system automatically extracts:
 
 ```json
 {
   "id": "f0no4hwvOVs_1753937739252",
   "youtubeId": "f0no4hwvOVs",
-  "title": "🏰A Verdadeira História da Disney World👸💫",
+  "title": "🏰The True Story of Disney World👸💫",
   "channelName": "HISTORY Brasil",
   "duration": "43:05",
   "fileSize": "145.2 MB",
@@ -122,21 +122,21 @@ O sistema extrai automaticamente:
 
 ---
 
-## 🧪 **Scripts de Teste**
+## 🧪 **Test Scripts**
 
-### **Testar Sistema Completo**
+### **Test Complete System**
 ```bash
 cd backend
 npm run test:direct
 ```
 
-### **Verificar YT-DLP**
+### **Check YT-DLP**
 ```bash
 cd backend  
 npm run test:ytdlp
 ```
 
-### **Testar Download**
+### **Test Download**
 ```bash
 cd backend
 npm run test:download
@@ -144,63 +144,63 @@ npm run test:download
 
 ---
 
-## 🎯 **Vantagens do Sistema Direto**
+## 🎯 **Direct System Advantages**
 
-### ✅ **Sem Dependência de Banco**
-- Não há problemas de sincronização
-- Não há conflitos de schema
-- Funciona independente do banco de dados
+### ✅ **No Database Dependency**
+- No synchronization issues
+- No schema conflicts
+- Works independently of database
 
-### ✅ **Resiliente e Confiável**
-- Se o banco falhar, downloads continuam funcionando
-- Dados sempre atualizados (leitura em tempo real)
-- Sem problemas de migração
+### ✅ **Resilient and Reliable**
+- If database fails, downloads continue working
+- Always updated data (real-time reading)
+- No migration issues
 
 ### ✅ **Performance**
-- Busca rápida em arquivos JSON
-- Streaming eficiente com range requests
-- Cache automático de thumbnails
+- Fast search in JSON files
+- Efficient streaming with range requests
+- Automatic thumbnail caching
 
-### ✅ **Simplicidade**
-- Arquitetura mais simples
-- Menos pontos de falha
-- Fácil de debugar
+### ✅ **Simplicity**
+- Simpler architecture
+- Fewer failure points
+- Easy to debug
 
 ---
 
-## 🚦 **Status da Implementação**
+## 🚦 **Implementation Status**
 
-| Funcionalidade | Status | Descrição |
+| Feature | Status | Description |
 |---|---|---|
-| ✅ DirectDownloadService | Completo | Serviço para ler JSONs da pasta |
-| ✅ API Routes | Completo | Endpoints para listagem e streaming |
-| ✅ Frontend API | Completo | Integração com downloadsAPI |
-| ✅ DownloadCard | Completo | Componente visual rico |
-| ✅ HomePage | Completo | Downloads recentes na homepage |
-| ✅ HistoricoPage | Completo | Página dedicada ao histórico |
-| ✅ Postman Collection | Completo | Collection atualizada |
-| ✅ Documentação | Completo | Guias e troubleshooting |
+| ✅ DirectDownloadService | Complete | Service to read JSONs from folder |
+| ✅ API Routes | Complete | Endpoints for listing and streaming |
+| ✅ Frontend API | Complete | Integration with downloadsAPI |
+| ✅ DownloadCard | Complete | Rich visual component |
+| ✅ HomePage | Complete | Recent downloads on homepage |
+| ✅ HistoricoPage | Complete | Dedicated history page |
+| ✅ Postman Collection | Complete | Updated collection |
+| ✅ Documentation | Complete | Guides and troubleshooting |
 
 ---
 
-## 📚 **Próximos Passos**
+## 📚 **Next Steps**
 
-O sistema está **100% funcional** e pronto para uso. Para usar:
+The system is **100% functional** and ready for use. To use:
 
-1. **Inicie o servidor**: `npm run start` no backend
-2. **Teste o sistema**: `npm run test:direct` no backend  
-3. **Acesse o frontend**: Downloads aparecerão automaticamente
-4. **Faça downloads**: Use a página "Baixar Vídeos" para novos downloads
-
----
-
-## 🆘 **Suporte**
-
-- **Logs do servidor**: Mostram detalhes do processamento
-- **Scripts de teste**: Diagnosticam problemas rapidamente
-- **API de stats**: Monitora o sistema em tempo real
-- **Documentação completa**: Troubleshooting em `docs/TROUBLESHOOTING.md`
+1. **Start the server**: `npm run start` in backend
+2. **Test the system**: `npm run test:direct` in backend  
+3. **Access the frontend**: Downloads will appear automatically
+4. **Make downloads**: Use the "Download Videos" page for new downloads
 
 ---
 
-**🎉 O XandTube agora tem um sistema de downloads robusto, simples e eficiente!**
+## 🆘 **Support**
+
+- **Server logs**: Show processing details
+- **Test scripts**: Diagnose problems quickly
+- **Stats API**: Monitor system in real time
+- **Complete documentation**: Troubleshooting in `docs/TROUBLESHOOTING.md`
+
+---
+
+**🎉 XandTube now has a robust, simple and efficient download system!**

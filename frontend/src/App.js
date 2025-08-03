@@ -16,6 +16,9 @@ import RegisterPage from './pages/RegisterPage';
 import DownloadPage from './pages/DownloadPage';
 import HistoricoPage from './pages/HistoricoPage';
 import WatchPage from './pages/WatchPage';
+import ChannelsPage from './pages/ChannelsPage';
+import ChannelDetailsPage from './pages/ChannelDetailsPage';
+import ChannelManagePage from './pages/ChannelManagePage';
 import NotFoundPage from './pages/NotFoundPage';
 import api from './services/api';
 
@@ -150,6 +153,9 @@ function App() {
                     <Route path="/watch/:id" element={<VideoPage />} />
                     <Route path="/watch-download/:id" element={<WatchPage />} />
                     <Route path="/channel/:id" element={<ChannelPage />} />
+                    <Route path="/channels" element={<ChannelsPage />} />
+                    <Route path="/channels/:id" element={<ChannelDetailsPage />} />
+                    <Route path="/channels/:channelId/manage" element={<ChannelManagePage />} />
                     <Route path="/upload" element={<UploadPage />} />
                     <Route path="/create-channel" element={<CreateChannelPage />} />
                     <Route path="/download" element={<DownloadPage />} />

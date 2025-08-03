@@ -196,6 +196,7 @@ router.put('/:id/dislike', (req, res) => {
 // GET /api/videos/:id/thumbnail - Obter thumbnail (mock)
 router.get('/:id/thumbnail', (req, res) => {
   // Em produção, geraria thumbnails reais dos vídeos
+  res.setHeader('Cache-Control', 'public, max-age=1800'); // Cache por 30 minutos
   res.redirect('https://via.placeholder.com/320x180/ff0000/ffffff?text=XandTube');
 });
 

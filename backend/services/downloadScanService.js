@@ -57,6 +57,11 @@ class DownloadScanService {
     const infoPath = path.join(this.downloadsPath, infoFileName);
     
     try {
+      // Verificar se o arquivo existe antes de tentar lê-lo
+      if (!await fs.pathExists(infoPath)) {
+        throw new Error(`Arquivo de vídeo não encontrado para ${infoFileName.replace('.info.json', '')}`);
+      }
+      
       // Lê o arquivo de metadados
       const metadata = JSON.parse(await fs.readFile(infoPath, 'utf8'));
       

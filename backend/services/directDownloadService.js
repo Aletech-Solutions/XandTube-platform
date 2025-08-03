@@ -7,6 +7,7 @@ const path = require('path');
 class DirectDownloadService {
   constructor() {
     this.downloadsPath = path.join(__dirname, '../../videos/downloads');
+    this.cacheFilePath = path.join(__dirname, '../../videos/downloads-cache.json');
     this.supportedVideoFormats = ['.mp4', '.webm', '.mkv', '.avi', '.mov'];
     this.supportedImageFormats = ['.jpg', '.jpeg', '.png', '.webp'];
   }
@@ -14,7 +15,7 @@ class DirectDownloadService {
   /**
    * Lista todos os downloads disponíveis
    */
-  async listDownloads(userId = null, page = 1, limit = 20) {
+  async listDownloads(userId = null, page = 1, limit = 10) {
     try {
       if (!await fs.pathExists(this.downloadsPath)) {
         return {
@@ -25,35 +26,27 @@ class DirectDownloadService {
         };
       }
 
-      const files = await fs.readdir(this.downloadsPath);
-      const infoFiles = files.filter(file => file.endsWith('.info.json'));
+      // Tentar usar cache primeiro
+      const downloads = await this.getCachedDownloads();
       
-      const downloads = [];
-      
-      for (const infoFile of infoFiles) {
-        try {
-          const download = await this.processDownloadFile(infoFile);
-          if (download && (!userId || download.userId === userId)) {
-            downloads.push(download);
-          }
-        } catch (error) {
-          console.warn(`⚠️ Erro ao processar ${infoFile}:`, error.message);
-        }
-      }
+      // Filtrar por usuário se necessário
+      const filteredDownloads = downloads.filter(download => 
+        !userId || download.userId === userId
+      );
 
-      // Ordena por data de download (mais recente primeiro)
-      downloads.sort((a, b) => new Date(b.downloadedAt) - new Date(a.downloadedAt));
+      // Ordenar por data de download (mais recente primeiro)
+      filteredDownloads.sort((a, b) => new Date(b.downloadedAt) - new Date(a.downloadedAt));
 
       // Paginação
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + limit;
-      const paginatedDownloads = downloads.slice(startIndex, endIndex);
+      const paginatedDownloads = filteredDownloads.slice(startIndex, endIndex);
 
       return {
         downloads: paginatedDownloads,
-        total: downloads.length,
+        total: filteredDownloads.length,
         page: parseInt(page),
-        totalPages: Math.ceil(downloads.length / limit)
+        totalPages: Math.ceil(filteredDownloads.length / limit)
       };
 
     } catch (error) {
@@ -67,6 +60,15 @@ class DirectDownloadService {
    */
   async getDownload(downloadId) {
     try {
+      // Tentar buscar no cache primeiro
+      const downloads = await this.getCachedDownloads();
+      const cachedDownload = downloads.find(download => download.id === downloadId);
+      
+      if (cachedDownload) {
+        return cachedDownload;
+      }
+      
+      // Se não encontrou no cache, buscar diretamente no arquivo
       const files = await fs.readdir(this.downloadsPath);
       const infoFile = files.find(file => 
         file.startsWith(downloadId) && file.endsWith('.info.json')
@@ -89,6 +91,11 @@ class DirectDownloadService {
   async processDownloadFile(infoFileName) {
     const infoPath = path.join(this.downloadsPath, infoFileName);
     const baseName = infoFileName.replace('.info.json', '');
+    
+    // Verificar se o arquivo existe antes de tentar lê-lo
+    if (!await fs.pathExists(infoPath)) {
+      throw new Error(`Arquivo de informações não encontrado para ${baseName}`);
+    }
     
     // Lê o arquivo JSON
     const infoData = await fs.readJson(infoPath);
@@ -164,20 +171,25 @@ class DirectDownloadService {
    */
   async getStats(userId = null) {
     try {
-      const { downloads } = await this.listDownloads(userId, 1, 999999);
+      const downloads = await this.getCachedDownloads();
       
-      const totalSize = downloads.reduce((sum, download) => sum + download.fileSize, 0);
-      const totalDuration = downloads.reduce((sum, download) => sum + download.durationSeconds, 0);
+      // Filtrar por usuário se necessário
+      const userDownloads = downloads.filter(download => 
+        !userId || download.userId === userId
+      );
+      
+      const totalSize = userDownloads.reduce((sum, download) => sum + download.fileSize, 0);
+      const totalDuration = userDownloads.reduce((sum, download) => sum + download.durationSeconds, 0);
       
       return {
-        totalDownloads: downloads.length,
+        totalDownloads: userDownloads.length,
         totalSize: totalSize,
         totalSizeFormatted: this.formatBytes(totalSize),
         totalDuration: totalDuration,
         totalDurationFormatted: this.formatDuration(totalDuration),
-        averageFileSize: downloads.length > 0 ? totalSize / downloads.length : 0,
-        formats: this.getFormatStats(downloads),
-        channels: this.getChannelStats(downloads)
+        averageFileSize: userDownloads.length > 0 ? totalSize / userDownloads.length : 0,
+        formats: this.getFormatStats(userDownloads),
+        channels: this.getChannelStats(userDownloads)
       };
     } catch (error) {
       console.error('❌ Erro ao obter estatísticas:', error);
@@ -200,6 +212,9 @@ class DirectDownloadService {
         deletedCount++;
       }
 
+      // Invalidar cache após deletar arquivos
+      await this.clearCache();
+
       return { 
         success: true, 
         deletedFiles: deletedCount,
@@ -214,12 +229,17 @@ class DirectDownloadService {
   /**
    * Buscar downloads por termo
    */
-  async searchDownloads(query, userId = null, page = 1, limit = 20) {
+  async searchDownloads(query, userId = null, page = 1, limit = 10) {
     try {
-      const { downloads } = await this.listDownloads(userId, 1, 999999);
+      const downloads = await this.getCachedDownloads();
+      
+      // Filtrar por usuário se necessário
+      const userDownloads = downloads.filter(download => 
+        !userId || download.userId === userId
+      );
       
       const searchTerm = query.toLowerCase();
-      const filtered = downloads.filter(download => 
+      const filtered = userDownloads.filter(download => 
         download.title.toLowerCase().includes(searchTerm) ||
         download.channelName.toLowerCase().includes(searchTerm) ||
         download.description.toLowerCase().includes(searchTerm)
@@ -240,6 +260,130 @@ class DirectDownloadService {
     } catch (error) {
       console.error('❌ Erro ao buscar downloads:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Obtém downloads do cache ou reconstrói se necessário
+   */
+  async getCachedDownloads() {
+    try {
+      const cacheValid = await this.isCacheValid();
+      
+      if (cacheValid && await fs.pathExists(this.cacheFilePath)) {
+        console.log('📦 Usando cache de downloads');
+        const cacheData = await fs.readJson(this.cacheFilePath);
+        return cacheData.downloads || [];
+      }
+      
+      console.log('🔄 Cache inválido ou inexistente, reconstruindo...');
+      return await this.buildCache();
+      
+    } catch (error) {
+      console.warn('⚠️ Erro ao ler cache, reconstruindo:', error.message);
+      return await this.buildCache();
+    }
+  }
+
+  /**
+   * Verifica se o cache está válido
+   */
+  async isCacheValid() {
+    try {
+      if (!await fs.pathExists(this.cacheFilePath)) {
+        return false;
+      }
+      
+      const cacheStats = await fs.stat(this.cacheFilePath);
+      const downloadsStats = await fs.stat(this.downloadsPath);
+      
+      // Cache é válido se for mais recente que a última modificação da pasta
+      return cacheStats.mtime >= downloadsStats.mtime;
+      
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Reconstrói o cache processando todos os arquivos
+   */
+  async buildCache() {
+    try {
+      console.log('🏗️ Construindo cache de downloads...');
+      const files = await fs.readdir(this.downloadsPath);
+      const infoFiles = files.filter(file => file.endsWith('.info.json'));
+      
+      const downloads = [];
+      let processed = 0;
+      
+      for (const infoFile of infoFiles) {
+        try {
+          // Verificar se o arquivo ainda existe antes de processar
+          const infoPath = path.join(this.downloadsPath, infoFile);
+          if (!await fs.pathExists(infoPath)) {
+            console.warn(`⚠️ Arquivo não encontrado, ignorando: ${infoFile}`);
+            continue;
+          }
+          
+          const download = await this.processDownloadFile(infoFile);
+          if (download) {
+            downloads.push(download);
+            processed++;
+            
+            // Log de progresso a cada 10 arquivos
+            if (processed % 10 === 0) {
+              console.log(`📊 Processados ${processed}/${infoFiles.length} downloads...`);
+            }
+          }
+        } catch (error) {
+          console.warn(`⚠️ Erro ao processar ${infoFile}:`, error.message);
+        }
+      }
+
+      // Salvar cache
+      await this.saveCache(downloads);
+      
+      console.log(`✅ Cache construído com ${downloads.length} downloads`);
+      return downloads;
+      
+    } catch (error) {
+      console.error('❌ Erro ao construir cache:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Salva o cache em arquivo
+   */
+  async saveCache(downloads) {
+    try {
+      const cacheData = {
+        lastUpdated: new Date().toISOString(),
+        totalDownloads: downloads.length,
+        downloads: downloads
+      };
+      
+      await fs.writeJson(this.cacheFilePath, cacheData, { spaces: 2 });
+      console.log(`💾 Cache salvo em ${this.cacheFilePath}`);
+      
+    } catch (error) {
+      console.error('❌ Erro ao salvar cache:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Limpa o cache (força reconstrução na próxima consulta)
+   */
+  async clearCache() {
+    try {
+      if (await fs.pathExists(this.cacheFilePath)) {
+        await fs.remove(this.cacheFilePath);
+        console.log('🗑️ Cache limpo');
+      }
+    } catch (error) {
+      console.warn('⚠️ Erro ao limpar cache:', error);
     }
   }
 

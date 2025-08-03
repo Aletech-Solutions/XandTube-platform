@@ -14,21 +14,6 @@ const ChannelHeader = styled.div`
   margin-bottom: 24px;
 `;
 
-const ChannelBanner = styled.div`
-  width: 100%;
-  height: 200px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 8px;
-  margin-bottom: 16px;
-  background-image: url(${props => props.banner});
-  background-size: cover;
-  background-position: center;
-  
-  @media (max-width: 768px) {
-    height: 120px;
-  }
-`;
-
 const ChannelInfo = styled.div`
   display: flex;
   align-items: center;
@@ -275,8 +260,6 @@ function ChannelPage() {
   return (
     <ChannelContainer>
       <ChannelHeader>
-        <ChannelBanner banner={channel.banner} />
-        
         <ChannelInfo>
           <ChannelAvatar 
             src={`/api/channels/${channel.id}/avatar`}

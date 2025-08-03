@@ -44,7 +44,6 @@ export const handleMissingData = {
         name: 'Canal não encontrado',
         description: 'Este canal não está disponível',
         avatar: 'https://via.placeholder.com/150x150/333333/ffffff?text=Canal+Indisponivel',
-        banner: 'https://via.placeholder.com/1920x480/666666/ffffff?text=Canal+Indisponivel',
         subscribers: 0,
         totalViews: 0,
         videoCount: 0,

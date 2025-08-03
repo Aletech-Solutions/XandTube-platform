@@ -389,7 +389,7 @@ router.get('/:id/thumbnail', async (req, res) => {
     }[ext] || 'image/jpeg';
 
     res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache por 1 dia
+    res.setHeader('Cache-Control', 'public, max-age=1800'); // Cache por 30 minutos
     
     fs.createReadStream(download.thumbnailPath).pipe(res);
 

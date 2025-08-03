@@ -1,28 +1,28 @@
-# Pasta de Vídeos
+# Videos Folder
 
-Esta pasta armazena os vídeos enviados para o XandTube.
+This folder stores videos uploaded to XandTube.
 
-## Estrutura
+## Structure
 
 ```
 videos/
-├── metadata/          # Metadados JSON dos vídeos (formato yt-dlp)
-├── video1.mp4         # Arquivos de vídeo
+├── metadata/          # JSON video metadata (yt-dlp format)
+├── video1.mp4         # Video files
 ├── video2.mp4
 └── ...
 ```
 
-## Metadados
+## Metadata
 
-Cada vídeo possui um arquivo JSON correspondente em `metadata/` com informações como:
-- Título e descrição
-- Duração
-- Canal
+Each video has a corresponding JSON file in `metadata/` with information such as:
+- Title and description
+- Duration
+- Channel
 - Tags
-- Data de upload
-- Estatísticas (views, likes, etc.)
+- Upload date
+- Statistics (views, likes, etc.)
 
-## Formatos Suportados
+## Supported Formats
 
 - MP4
 - AVI
@@ -32,6 +32,6 @@ Cada vídeo possui um arquivo JSON correspondente em `metadata/` com informaçõ
 - FLV
 - WebM
 
-## Limite de Tamanho
+## Size Limit
 
-- Máximo: 100MB por vídeo
+- Maximum: 100MB per video

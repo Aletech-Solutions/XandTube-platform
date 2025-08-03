@@ -1,40 +1,40 @@
-# XandTube - Guia de Configuração v2.0
+# XandTube - Setup Guide v2.0
 
-## 🆕 Novas Funcionalidades
+## 🆕 New Features
 
-### Sistema de Autenticação
-- Login e registro de usuários
-- Autenticação JWT
-- Proteção de rotas
-- Gerenciamento de perfil
+### Authentication System
+- User login and registration
+- JWT authentication
+- Route protection
+- Profile management
 
-### Download de Vídeos do YouTube
-- Download de vídeos individuais
-- Download de playlists completas
-- Seleção de qualidade
-- Progresso em tempo real
-- Integração com YT-DLP
+### YouTube Video Download
+- Individual video downloads
+- Complete playlist downloads
+- Quality selection
+- Real-time progress
+- YT-DLP integration
 
-### Banco de Dados
-- SQLite com Sequelize ORM
-- Models relacionais completos
-- Migrations automáticas
+### Database
+- SQLite with Sequelize ORM
+- Complete relational models
+- Automatic migrations
 
-## 📋 Pré-requisitos
+## 📋 Prerequisites
 
-- Node.js (v16 ou superior)
-- npm ou yarn
-- Python 3.x (para YT-DLP)
-- FFmpeg (para processamento de vídeo)
+- Node.js (v16 or higher)
+- npm or yarn
+- Python 3.x (for YT-DLP)
+- FFmpeg (for video processing)
 
-## 🚀 Instalação
+## 🚀 Installation
 
-### 1. Instalar YT-DLP
+### 1. Install YT-DLP
 
 **Windows:**
 ```bash
 pip install yt-dlp
-# ou
+# or
 winget install yt-dlp
 ```
 
@@ -46,15 +46,15 @@ brew install yt-dlp
 **Linux:**
 ```bash
 sudo pip install yt-dlp
-# ou
+# or
 sudo apt install yt-dlp
 ```
 
-### 2. Instalar FFmpeg
+### 2. Install FFmpeg
 
 **Windows:**
-- Baixe de https://ffmpeg.org/download.html
-- Adicione ao PATH do sistema
+- Download from https://ffmpeg.org/download.html
+- Add to system PATH
 
 **macOS:**
 ```bash
@@ -67,34 +67,34 @@ sudo apt update
 sudo apt install ffmpeg
 ```
 
-### 3. Configurar o Backend
+### 3. Configure Backend
 
 ```bash
 cd backend
 
-# Copiar arquivo de exemplo
+# Copy example file
 cp env.example .env
 
-# Editar .env com suas configurações
-# Importante: Defina um JWT_SECRET seguro!
+# Edit .env with your configurations
+# Important: Set a secure JWT_SECRET!
 
-# Instalar dependências
+# Install dependencies
 npm install
 ```
 
-### 4. Configurar o Frontend
+### 4. Configure Frontend
 
 ```bash
 cd frontend
 
-# Instalar dependências (incluindo CRACO)
+# Install dependencies (including CRACO)
 npm install
 
-# Criar arquivo .env (se necessário)
+# Create .env file (if needed)
 echo "REACT_APP_API_URL=http://localhost:3001/api" > .env
 ```
 
-## 🏃‍♂️ Executando o Projeto
+## 🏃‍♂️ Running the Project
 
 ### Backend (Terminal 1):
 ```bash
@@ -102,10 +102,10 @@ cd backend
 npm run dev
 ```
 
-O backend iniciará em http://localhost:3001 com:
-- API REST
-- WebSocket para progresso de downloads
-- Banco de dados SQLite
+The backend will start at http://localhost:3001 with:
+- REST API
+- WebSocket for download progress
+- SQLite database
 
 ### Frontend (Terminal 2):
 ```bash
@@ -113,109 +113,109 @@ cd frontend
 npm start
 ```
 
-O frontend iniciará em http://localhost:3000
+The frontend will start at http://localhost:3000
 
-## 🔐 Primeiro Acesso
+## 🔐 First Access
 
-1. Acesse http://localhost:3000
-2. Clique em "Cadastre-se" para criar uma conta
-3. Preencha os dados:
-   - Username (único)
+1. Access http://localhost:3000
+2. Click "Sign Up" to create an account
+3. Fill in the data:
+   - Username (unique)
    - Email
-   - Nome completo
-   - Senha (mínimo 6 caracteres)
-4. Após o cadastro, você será logado automaticamente
+   - Full name
+   - Password (minimum 6 characters)
+4. After registration, you will be logged in automatically
 
-## 🎥 Baixando Vídeos
+## 🎥 Downloading Videos
 
-1. No menu lateral, clique em "Baixar Vídeos"
-2. Cole a URL do YouTube (vídeo ou playlist)
-3. Clique em "Analisar"
-4. Escolha a qualidade desejada
-5. Clique em "Baixar Vídeo" ou "Baixar Playlist"
-6. Acompanhe o progresso em tempo real
-7. Os vídeos serão salvos em sua biblioteca
+1. In the side menu, click "Download Videos"
+2. Paste the YouTube URL (video or playlist)
+3. Click "Analyze"
+4. Choose the desired quality
+5. Click "Download Video" or "Download Playlist"
+6. Follow the progress in real time
+7. Videos will be saved to your library
 
-## 📦 Estrutura do Projeto
+## 📦 Project Structure
 
 ```
 XandTube/
 ├── backend/
-│   ├── config/         # Configurações do banco
+│   ├── config/         # Database configurations
 │   ├── middleware/     # Middlewares (auth, etc)
-│   ├── models/         # Models Sequelize
-│   ├── routes/         # Rotas da API
-│   ├── services/       # Serviços (YT-DLP, etc)
-│   ├── database.sqlite # Banco de dados
-│   └── server.js       # Servidor principal
+│   ├── models/         # Sequelize models
+│   ├── routes/         # API routes
+│   ├── services/       # Services (YT-DLP, etc)
+│   ├── database.sqlite # Database
+│   └── server.js       # Main server
 ├── frontend/
 │   ├── src/
-│   │   ├── components/ # Componentes React
-│   │   ├── pages/      # Páginas da aplicação
-│   │   └── services/   # Serviços de API
-│   └── craco.config.js # Configuração do CRACO
-└── videos/             # Armazenamento de vídeos
-    ├── downloads/      # Vídeos baixados
-    └── metadata/       # Metadados
+│   │   ├── components/ # React components
+│   │   ├── pages/      # Application pages
+│   │   └── services/   # API services
+│   └── craco.config.js # CRACO configuration
+└── videos/             # Video storage
+    ├── downloads/      # Downloaded videos
+    └── metadata/       # Metadata
 
 ```
 
-## 🔧 Solução de Problemas
+## 🔧 Troubleshooting
 
-### Erro "allowedHosts" no frontend
-O projeto já está configurado com CRACO para resolver este problema automaticamente.
+### "allowedHosts" error in frontend
+The project is already configured with CRACO to resolve this issue automatically.
 
-### YT-DLP não encontrado
-Certifique-se de que o yt-dlp está instalado e acessível no PATH:
+### YT-DLP not found
+Make sure yt-dlp is installed and accessible in PATH:
 ```bash
 yt-dlp --version
 ```
 
-### Erro de CORS
-Verifique se o backend está rodando na porta correta (3001) e se o CORS está configurado.
+### CORS error
+Check if the backend is running on the correct port (3001) and if CORS is configured.
 
-### Token JWT expirado
-Faça logout e login novamente. Os tokens expiram após 7 dias.
+### JWT token expired
+Logout and login again. Tokens expire after 7 days.
 
 ## 📚 API Documentation
 
-### Autenticação
-Todas as rotas (exceto login/registro) requerem o header:
+### Authentication
+All routes (except login/registration) require the header:
 ```
 Authorization: Bearer <token>
 ```
 
-### Coleção Postman
-Importe o arquivo `docs/XandTube-API-v2.postman_collection.json` no Postman para testar todas as rotas.
+### Postman Collection
+Import the `docs/XandTube-API-v2.postman_collection.json` file in Postman to test all routes.
 
-## 🛠️ Desenvolvimento
+## 🛠️ Development
 
-### Adicionar novas rotas protegidas
+### Add new protected routes
 ```javascript
 const { authenticateToken } = require('../middleware/auth');
 
 router.get('/protected-route', authenticateToken, (req, res) => {
-  // req.user contém os dados do usuário autenticado
+  // req.user contains authenticated user data
 });
 ```
 
-### Criar novos models
+### Create new models
 ```javascript
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
 const MyModel = sequelize.define('MyModel', {
-  // definição dos campos
+  // field definitions
 });
 ```
 
-## 📝 Variáveis de Ambiente
+## 📝 Environment Variables
 
 ### Backend (.env)
 ```env
 PORT=3001
 NODE_ENV=development
-JWT_SECRET=sua_chave_secreta_super_segura
+JWT_SECRET=your_super_secure_secret_key
 VIDEOS_PATH=../videos
 ```
 
@@ -224,28 +224,28 @@ VIDEOS_PATH=../videos
 REACT_APP_API_URL=http://localhost:3001/api
 ```
 
-## 🚨 Segurança
+## 🚨 Security
 
-1. **JWT_SECRET**: Use uma chave complexa e única
-2. **Senhas**: São hasheadas com bcrypt
-3. **CORS**: Configurado para aceitar apenas origens específicas
-4. **Validação**: Todos os inputs são validados no backend
+1. **JWT_SECRET**: Use a complex and unique key
+2. **Passwords**: Are hashed with bcrypt
+3. **CORS**: Configured to accept only specific origins
+4. **Validation**: All inputs are validated on the backend
 
-## 📞 Suporte
+## 📞 Support
 
-Se encontrar problemas:
-1. Verifique os logs do console
-2. Consulte a documentação da API
-3. Verifique as dependências instaladas
-4. Reinicie os servidores
+If you encounter problems:
+1. Check console logs
+2. Consult the API documentation
+3. Check installed dependencies
+4. Restart servers
 
-## 🎉 Pronto!
+## 🎉 Ready!
 
-Agora você tem um clone completo do YouTube com:
-- ✅ Sistema de autenticação
-- ✅ Download de vídeos do YouTube
-- ✅ Progresso em tempo real
-- ✅ Banco de dados relacional
-- ✅ Interface moderna e responsiva
+Now you have a complete YouTube clone with:
+- ✅ Authentication system
+- ✅ YouTube video downloads
+- ✅ Real-time progress
+- ✅ Relational database
+- ✅ Modern and responsive interface
 
-Aproveite o XandTube! 🚀
+Enjoy XandTube! 🚀

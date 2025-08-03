@@ -6,7 +6,7 @@ import {
   FaHistory, 
   FaDownload,
   FaYoutube,
-  FaSearch
+  FaUsers
 } from 'react-icons/fa';
 
 const MobileNavContainer = styled.nav`
@@ -107,18 +107,11 @@ function MobileNavigation() {
         </MobileNavItem>
         
         <MobileNavItem 
-          to="/" 
-          active={location.search.includes('search=')}
-          onClick={(e) => {
-            e.preventDefault();
-            const searchInput = document.querySelector('input[placeholder="Pesquisar"]');
-            if (searchInput) {
-              searchInput.focus();
-            }
-          }}
+          to="/channels" 
+          active={isActive('/channels')}
         >
-          <FaSearch />
-          Buscar
+          <FaUsers />
+          Canais
         </MobileNavItem>
       </MobileNavGrid>
     </MobileNavContainer>

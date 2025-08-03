@@ -123,6 +123,12 @@ export const downloadsAPI = {
   }
 };
 
+// Recommendations API
+export const recommendationsAPI = {
+  getForVideo: (videoId, limit = 10) => api.get(`/recommendations/${videoId}`, { params: { limit } }),
+  getPopular: (limit = 10) => api.get('/recommendations', { params: { limit } })
+};
+
 // Health check
 export const healthCheck = () => api.get('/health');
 

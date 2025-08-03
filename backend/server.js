@@ -17,6 +17,8 @@ const commentRoutes = require('./routes/comments');
 const downloadRoutes = require('./routes/download');
 // const downloadsRoutes = require('./routes/downloads'); // Comentado devido a problemas de banco
 const directDownloadsRoutes = require('./routes/directDownloads');
+const imageRoutes = require('./routes/images');
+const recommendationsRoutes = require('./routes/recommendations');
 
 const app = express();
 const server = http.createServer(app);
@@ -32,9 +34,10 @@ app.use(express.urlencoded({ extended: true }));
 const videosPath = path.join(__dirname, process.env.VIDEOS_PATH || '../videos');
 app.use('/videos', express.static(videosPath));
 
-// Garantir que a pasta de vídeos existe
+// Garantir que as pastas necessárias existem
 fs.ensureDirSync(videosPath);
 fs.ensureDirSync(path.join(videosPath, 'metadata'));
+fs.ensureDirSync(path.join(videosPath, 'images'));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -44,6 +47,8 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/download', downloadRoutes);
 // app.use('/api/downloads', downloadsRoutes); // Comentado devido a problemas de banco
 app.use('/api/direct-downloads', directDownloadsRoutes);
+app.use('/api/images', imageRoutes);
+app.use('/api/recommendations', recommendationsRoutes);
 
 // Health check
 app.get('/api/health', async (req, res) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import DownloadCard from '../components/DownloadCard';
 import { downloadsAPI } from '../services/api';
@@ -332,7 +332,7 @@ function HomePage() {
       <SectionTitle>
         {searchQuery ? 'Resultados da Busca' : 'Seus Downloads'}
         {!searchQuery && (
-          <ViewAllLink href="/historico">
+          <ViewAllLink as={Link} to="/historico">
             Ver todos
           </ViewAllLink>
         )}

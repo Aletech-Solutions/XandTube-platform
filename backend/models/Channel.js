@@ -19,10 +19,7 @@ const Channel = sequelize.define('Channel', {
   description: {
     type: DataTypes.TEXT
   },
-  bannerUrl: {
-    type: DataTypes.STRING,
-    field: 'banner_url'
-  },
+
   avatarUrl: {
     type: DataTypes.STRING,
     field: 'avatar_url'

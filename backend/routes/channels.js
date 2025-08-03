@@ -1,41 +1,124 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+const path = require('path');
 
 const router = express.Router();
 
-// Mock data - Em produção seria um banco de dados
-let channels = [
-  {
-    id: 'channel-1',
-    name: 'Canal Tecnologia',
-    description: 'Canal dedicado a tecnologia e inovação',
-    avatar: '/api/channels/channel-1/avatar',
-    banner: '/api/channels/channel-1/banner',
-    subscribers: 15420,
-    totalViews: 234567,
-    videoCount: 45,
-    createdAt: '2023-06-15T10:30:00Z',
-    verified: true
-  },
-  {
-    id: 'channel-2',
-    name: 'XandTube Oficial',
-    description: 'Canal oficial do XandTube com tutoriais e novidades',
-    avatar: '/api/channels/channel-2/avatar',
-    banner: '/api/channels/channel-2/banner',
-    subscribers: 8930,
-    totalViews: 145238,
-    videoCount: 23,
-    createdAt: '2023-08-20T14:20:00Z',
-    verified: true
+// Função para carregar imagens customizadas dos canais
+const loadCustomChannelImages = () => {
+  const channelImagesPath = path.join(__dirname, '../../videos/channel-images.json');
+  
+  try {
+    if (fs.existsSync(channelImagesPath)) {
+      return JSON.parse(fs.readFileSync(channelImagesPath, 'utf8'));
+    }
+  } catch (error) {
+    console.warn('Erro ao carregar imagens de canais:', error.message);
   }
-];
+  
+  return {};
+};
+
+// Função para ler arquivos de informação dos vídeos
+const getVideoInfoFiles = () => {
+  const videosPath = path.join(__dirname, '../../videos');
+  const downloadsPath = path.join(videosPath, 'downloads');
+  const metadataPath = path.join(videosPath, 'metadata');
+  
+  let infoFiles = [];
+  
+  // Buscar em downloads
+  if (fs.existsSync(downloadsPath)) {
+    const files = fs.readdirSync(downloadsPath);
+    const infoFilesInDownloads = files.filter(file => file.endsWith('.info.json'));
+    infoFiles = infoFiles.concat(infoFilesInDownloads.map(file => path.join(downloadsPath, file)));
+  }
+  
+  // Buscar em metadata
+  if (fs.existsSync(metadataPath)) {
+    const files = fs.readdirSync(metadataPath);
+    const infoFilesInMetadata = files.filter(file => file.endsWith('.info.json'));
+    infoFiles = infoFiles.concat(infoFilesInMetadata.map(file => path.join(metadataPath, file)));
+  }
+  
+  return infoFiles;
+};
+
+// Função para extrair informações de canais dos vídeos
+const extractChannelsFromVideos = () => {
+  const infoFiles = getVideoInfoFiles();
+  const channelsMap = new Map();
+  const customImages = loadCustomChannelImages();
+  
+  infoFiles.forEach(filePath => {
+    try {
+      // Verificar se o arquivo existe antes de tentar lê-lo
+      if (!fs.existsSync(filePath)) {
+        console.log(`⚠️ Arquivo não encontrado: ${filePath}`);
+        return;
+      }
+      
+      const content = fs.readFileSync(filePath, 'utf8');
+      const videoInfo = JSON.parse(content);
+      
+      const channelId = videoInfo.channel_id || videoInfo.uploader_id;
+      const channelName = videoInfo.channel || videoInfo.uploader;
+      
+      if (channelId && channelName) {
+        if (!channelsMap.has(channelId)) {
+          // Usar imagens customizadas se disponíveis, senão usar graceful fallback
+          const channelImages = customImages[channelId] || {};
+          const avatar = channelImages.avatar ? 
+            `/api/images/avatar/${channelImages.avatar}` : 
+            `/api/images/avatar/placeholder-${channelId}.png`;
+            
+          channelsMap.set(channelId, {
+            id: channelId,
+            name: channelName,
+            description: videoInfo.channel_description || `Canal de ${channelName}`,
+            avatar: avatar,
+            subscribers: videoInfo.channel_follower_count || 0,
+            totalViews: 0,
+            videoCount: 0,
+            createdAt: new Date().toISOString(),
+            verified: false,
+            videos: []
+          });
+        }
+        
+        const channel = channelsMap.get(channelId);
+        channel.videoCount++;
+        channel.totalViews += (videoInfo.view_count || 0);
+        
+        // Extrair ID completo do nome do arquivo (inclui timestamp)
+        const fileName = path.basename(filePath, '.info.json');
+        
+        // Adicionar informações do vídeo
+        channel.videos.push({
+          id: fileName, // ID completo com timestamp (ex: Htm6wnKPqKw_1754242008929)
+          youtubeId: videoInfo.id, // ID original do YouTube (ex: Htm6wnKPqKw)
+          title: videoInfo.title,
+          thumbnail: videoInfo.thumbnail,
+          duration: videoInfo.duration,
+          views: videoInfo.view_count || 0,
+          uploadDate: videoInfo.upload_date,
+          createdAt: videoInfo.upload_date ? new Date(videoInfo.upload_date.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')).toISOString() : new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      console.error(`Erro ao processar ${filePath}:`, error.message);
+    }
+  });
+  
+  return Array.from(channelsMap.values());
+};
 
 // GET /api/channels - Listar todos os canais
 router.get('/', (req, res) => {
   try {
     const { search, limit = 20, offset = 0 } = req.query;
     
+    let channels = extractChannelsFromVideos();
     let filteredChannels = [...channels];
     
     // Filtro por busca
@@ -46,6 +129,9 @@ router.get('/', (req, res) => {
         channel.description.toLowerCase().includes(searchLower)
       );
     }
+    
+    // Remover a propriedade videos para não sobrecarregar a resposta
+    filteredChannels = filteredChannels.map(({ videos, ...channel }) => channel);
     
     // Paginação
     const start = parseInt(offset);
@@ -66,6 +152,7 @@ router.get('/', (req, res) => {
 // GET /api/channels/:id - Obter canal específico
 router.get('/:id', (req, res) => {
   try {
+    const channels = extractChannelsFromVideos();
     const channel = channels.find(c => c.id === req.params.id);
     
     if (!channel) {
@@ -75,115 +162,45 @@ router.get('/:id', (req, res) => {
       });
     }
     
-    res.json(channel);
+    // Remover a propriedade videos para não duplicar dados
+    const { videos, ...channelData } = channel;
+    res.json(channelData);
   } catch (error) {
     console.error('Erro ao buscar canal:', error);
     res.status(500).json({ error: 'Erro ao buscar canal' });
   }
 });
 
-// POST /api/channels - Criar novo canal
+// POST /api/channels - Criar novo canal (desabilitado - canais são criados automaticamente)
 router.post('/', (req, res) => {
-  try {
-    const { name, description } = req.body;
-    
-    if (!name) {
-      return res.status(400).json({ 
-        error: 'Nome do canal é obrigatório'
-      });
-    }
-    
-    // Verificar se já existe um canal com esse nome
-    const existingChannel = channels.find(c => 
-      c.name.toLowerCase() === name.toLowerCase()
-    );
-    
-    if (existingChannel) {
-      return res.status(409).json({ 
-        error: 'Já existe um canal com esse nome'
-      });
-    }
-    
-    const newChannel = {
-      id: uuidv4(),
-      name,
-      description: description || '',
-      avatar: `/api/channels/${uuidv4()}/avatar`,
-      banner: `/api/channels/${uuidv4()}/banner`,
-      subscribers: 0,
-      totalViews: 0,
-      videoCount: 0,
-      createdAt: new Date().toISOString(),
-      verified: false
-    };
-    
-    channels.push(newChannel);
-    
-    res.status(201).json({
-      message: 'Canal criado com sucesso!',
-      channel: newChannel
-    });
-  } catch (error) {
-    console.error('Erro ao criar canal:', error);
-    res.status(500).json({ error: 'Erro ao criar canal' });
-  }
+  res.status(405).json({ 
+    error: 'Método não permitido',
+    message: 'Canais são criados automaticamente a partir dos vídeos baixados'
+  });
 });
 
-// PUT /api/channels/:id - Atualizar canal
+// PUT /api/channels/:id - Atualizar canal (desabilitado - canais são baseados nos vídeos)
 router.put('/:id', (req, res) => {
-  try {
-    const channel = channels.find(c => c.id === req.params.id);
-    
-    if (!channel) {
-      return res.status(404).json({ error: 'Canal não encontrado' });
-    }
-    
-    const { name, description } = req.body;
-    
-    // Verificar se o novo nome já existe em outro canal
-    if (name && name !== channel.name) {
-      const existingChannel = channels.find(c => 
-        c.id !== req.params.id && 
-        c.name.toLowerCase() === name.toLowerCase()
-      );
-      
-      if (existingChannel) {
-        return res.status(409).json({ 
-          error: 'Já existe um canal com esse nome'
-        });
-      }
-      
-      channel.name = name;
-    }
-    
-    if (description !== undefined) {
-      channel.description = description;
-    }
-    
-    res.json({
-      message: 'Canal atualizado com sucesso!',
-      channel
-    });
-  } catch (error) {
-    console.error('Erro ao atualizar canal:', error);
-    res.status(500).json({ error: 'Erro ao atualizar canal' });
-  }
+  res.status(405).json({ 
+    error: 'Método não permitido',
+    message: 'Informações dos canais são extraídas automaticamente dos vídeos baixados'
+  });
 });
 
-// PUT /api/channels/:id/subscribe - Inscrever-se no canal
+// PUT /api/channels/:id/subscribe - Inscrever-se no canal (simulado)
 router.put('/:id/subscribe', (req, res) => {
   try {
+    const channels = extractChannelsFromVideos();
     const channel = channels.find(c => c.id === req.params.id);
     
     if (!channel) {
       return res.status(404).json({ error: 'Canal não encontrado' });
     }
     
-    channel.subscribers += 1;
-    
+    // Simular inscrição (em uma implementação real, seria salvo no banco)
     res.json({ 
       message: 'Inscrito no canal!',
-      subscribers: channel.subscribers 
+      subscribers: channel.subscribers + 1
     });
   } catch (error) {
     console.error('Erro ao se inscrever:', error);
@@ -191,24 +208,65 @@ router.put('/:id/subscribe', (req, res) => {
   }
 });
 
-// PUT /api/channels/:id/unsubscribe - Cancelar inscrição
+// PUT /api/channels/:id/unsubscribe - Cancelar inscrição (simulado)
 router.put('/:id/unsubscribe', (req, res) => {
   try {
+    const channels = extractChannelsFromVideos();
     const channel = channels.find(c => c.id === req.params.id);
     
     if (!channel) {
       return res.status(404).json({ error: 'Canal não encontrado' });
     }
     
-    channel.subscribers = Math.max(0, channel.subscribers - 1);
-    
+    // Simular cancelamento de inscrição (em uma implementação real, seria salvo no banco)
     res.json({ 
       message: 'Inscrição cancelada!',
-      subscribers: channel.subscribers 
+      subscribers: Math.max(0, channel.subscribers - 1)
     });
   } catch (error) {
     console.error('Erro ao cancelar inscrição:', error);
     res.status(500).json({ error: 'Erro ao cancelar inscrição' });
+  }
+});
+
+// GET /api/channels/:id/videos - Obter vídeos do canal
+router.get('/:id/videos', (req, res) => {
+  try {
+    const { limit = 20, offset = 0 } = req.query;
+    const channelId = req.params.id;
+    
+    const channels = extractChannelsFromVideos();
+    const channel = channels.find(c => c.id === channelId);
+    
+    if (!channel) {
+      return res.status(404).json({ 
+        error: 'Canal não encontrado',
+        message: 'O canal solicitado não existe'
+      });
+    }
+    
+    // Paginação dos vídeos
+    const start = parseInt(offset);
+    const end = start + parseInt(limit);
+    const paginatedVideos = channel.videos.slice(start, end);
+    
+    res.json({
+      channel: {
+        id: channel.id,
+        name: channel.name,
+        description: channel.description,
+        avatar: channel.avatar,
+        subscribers: channel.subscribers,
+        totalViews: channel.totalViews,
+        verified: channel.verified
+      },
+      videos: paginatedVideos,
+      total: channel.videos.length,
+      hasMore: end < channel.videos.length
+    });
+  } catch (error) {
+    console.error('Erro ao buscar vídeos do canal:', error);
+    res.status(500).json({ error: 'Erro ao buscar vídeos do canal' });
   }
 });
 
@@ -218,29 +276,14 @@ router.get('/:id/avatar', (req, res) => {
   res.redirect('https://via.placeholder.com/150x150/333333/ffffff?text=CH');
 });
 
-// GET /api/channels/:id/banner - Obter banner (mock)
-router.get('/:id/banner', (req, res) => {
-  // Em produção, serviria imagens reais
-  res.redirect('https://via.placeholder.com/1920x480/666666/ffffff?text=Channel+Banner');
-});
 
-// DELETE /api/channels/:id - Deletar canal
+
+// DELETE /api/channels/:id - Deletar canal (desabilitado)
 router.delete('/:id', (req, res) => {
-  try {
-    const channelIndex = channels.findIndex(c => c.id === req.params.id);
-    
-    if (channelIndex === -1) {
-      return res.status(404).json({ error: 'Canal não encontrado' });
-    }
-    
-    // Remover do array
-    channels.splice(channelIndex, 1);
-    
-    res.json({ message: 'Canal removido com sucesso!' });
-  } catch (error) {
-    console.error('Erro ao deletar canal:', error);
-    res.status(500).json({ error: 'Erro ao deletar canal' });
-  }
+  res.status(405).json({ 
+    error: 'Método não permitido',
+    message: 'Canais são gerenciados automaticamente baseados nos vídeos baixados'
+  });
 });
 
 module.exports = router;

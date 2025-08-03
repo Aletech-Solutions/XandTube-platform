@@ -1,14 +1,14 @@
 # XandTube API Documentation
 
-Esta documentação descreve todos os endpoints disponíveis na API do XandTube.
+This documentation describes all available endpoints in the XandTube API.
 
 ## Base URL
 ```
 http://localhost:3001/api
 ```
 
-## Formatos Suportados
-- **Request**: JSON, Form Data (para uploads)
+## Supported Formats
+- **Request**: JSON, Form Data (for uploads)
 - **Response**: JSON
 
 ---
@@ -16,31 +16,31 @@ http://localhost:3001/api
 ## 🏥 Health Check
 
 ### GET /health
-Verifica se a API está funcionando.
+Checks if the API is working.
 
-**Resposta:**
+**Response:**
 ```json
 {
   "status": "OK",
-  "message": "XandTube Backend funcionando!",
+  "message": "XandTube Backend working!",
   "timestamp": "2024-01-20T10:30:00.000Z"
 }
 ```
 
 ---
 
-## 🎥 Vídeos
+## 🎥 Videos
 
 ### GET /videos
-Lista todos os vídeos com paginação e filtros.
+Lists all videos with pagination and filters.
 
-**Parâmetros de Query:**
-- `limit` (number, opcional): Número de vídeos por página (padrão: 20)
-- `offset` (number, opcional): Deslocamento para paginação (padrão: 0)
-- `search` (string, opcional): Termo de busca
-- `channel` (string, opcional): ID do canal para filtrar
+**Query Parameters:**
+- `limit` (number, optional): Number of videos per page (default: 20)
+- `offset` (number, optional): Offset for pagination (default: 0)
+- `search` (string, optional): Search term
+- `channel` (string, optional): Channel ID to filter
 
-**Resposta de Sucesso (200):**
+**Success Response (200):**
 ```json
 {
   "videos": [
@@ -66,12 +66,12 @@ Lista todos os vídeos com paginação e filtros.
 ```
 
 ### GET /videos/:id
-Obtém um vídeo específico pelo ID.
+Gets a specific video by ID.
 
-**Parâmetros de URL:**
-- `id` (string): ID do vídeo
+**URL Parameters:**
+- `id` (string): Video ID
 
-**Resposta de Sucesso (200):**
+**Success Response (200):**
 ```json
 {
   "id": "1",
@@ -90,28 +90,28 @@ Obtém um vídeo específico pelo ID.
 }
 ```
 
-**Resposta de Erro (404):**
+**Error Response (404):**
 ```json
 {
-  "error": "Vídeo não encontrado",
-  "message": "O vídeo solicitado não existe ou foi removido"
+  "error": "Video not found",
+  "message": "The requested video does not exist or was removed"
 }
 ```
 
 ### POST /videos
-Faz upload de um novo vídeo.
+Uploads a new video.
 
 **Content-Type:** `multipart/form-data`
 
-**Parâmetros do Form:**
-- `video` (file, obrigatório): Arquivo de vídeo
-- `title` (string, obrigatório): Título do vídeo
-- `description` (string, opcional): Descrição do vídeo
-- `channelId` (string, obrigatório): ID do canal
-- `channelName` (string, opcional): Nome do canal
-- `tags` (string, opcional): Tags separadas por vírgula
+**Form Parameters:**
+- `video` (file, required): Video file
+- `title` (string, required): Video title
+- `description` (string, optional): Video description
+- `channelId` (string, required): Channel ID
+- `channelName` (string, optional): Channel name
+- `tags` (string, optional): Comma-separated tags
 
-**Resposta de Sucesso (201):**
+**Success Response (201):**
 ```json
 {
   "message": "Vídeo enviado com sucesso!",
@@ -134,51 +134,51 @@ Faz upload de um novo vídeo.
 ```
 
 ### PUT /videos/:id/like
-Adiciona um like ao vídeo.
+Adds a like to the video.
 
-**Resposta de Sucesso (200):**
+**Success Response (200):**
 ```json
 {
-  "message": "Vídeo curtido!",
+  "message": "Video liked!",
   "likes": 46
 }
 ```
 
 ### PUT /videos/:id/dislike
-Adiciona um dislike ao vídeo.
+Adds a dislike to the video.
 
-**Resposta de Sucesso (200):**
+**Success Response (200):**
 ```json
 {
-  "message": "Vídeo descurtido!",
+  "message": "Video disliked!",
   "dislikes": 3
 }
 ```
 
 ### GET /videos/:id/thumbnail
-Obtém a thumbnail do vídeo (redirecionamento para placeholder).
+Gets the video thumbnail (redirects to placeholder).
 
 ### DELETE /videos/:id
-Remove um vídeo do sistema.
+Removes a video from the system.
 
-**Resposta de Sucesso (200):**
+**Success Response (200):**
 ```json
 {
-  "message": "Vídeo removido com sucesso!"
+  "message": "Video removed successfully!"
 }
 ```
 
 ---
 
-## 📺 Canais
+## 📺 Channels
 
 ### GET /channels
-Lista todos os canais com paginação.
+Lists all channels with pagination.
 
-**Parâmetros de Query:**
-- `limit` (number, opcional): Número de canais por página (padrão: 20)
-- `offset` (number, opcional): Deslocamento para paginação (padrão: 0)
-- `search` (string, opcional): Termo de busca
+**Query Parameters:**
+- `limit` (number, optional): Number of channels per page (default: 20)
+- `offset` (number, optional): Offset for pagination (default: 0)
+- `search` (string, optional): Search term
 
 **Resposta de Sucesso (200):**
 ```json
@@ -203,29 +203,29 @@ Lista todos os canais com paginação.
 ```
 
 ### GET /channels/:id
-Obtém um canal específico pelo ID.
+Gets a specific channel by ID.
 
 ### POST /channels
-Cria um novo canal.
+Creates a new channel.
 
 **Content-Type:** `application/json`
 
 **Body:**
 ```json
 {
-  "name": "Meu Novo Canal",
-  "description": "Descrição do canal"
+  "name": "My New Channel",
+  "description": "Channel description"
 }
 ```
 
 **Resposta de Sucesso (201):**
 ```json
 {
-  "message": "Canal criado com sucesso!",
+  "message": "Channel created successfully!",
   "channel": {
     "id": "new-channel-id",
-    "name": "Meu Novo Canal",
-    "description": "Descrição do canal",
+    "name": "My New Channel",
+    "description": "Channel description",
     "avatar": "/api/channels/new-channel-id/avatar",
     "banner": "/api/channels/new-channel-id/banner",
     "subscribers": 0,
@@ -238,45 +238,45 @@ Cria um novo canal.
 ```
 
 ### PUT /channels/:id
-Atualiza informações de um canal.
+Updates channel information.
 
 ### PUT /channels/:id/subscribe
-Inscreve-se em um canal.
+Subscribes to a channel.
 
 **Resposta de Sucesso (200):**
 ```json
 {
-  "message": "Inscrito no canal!",
+  "message": "Subscribed to channel!",
   "subscribers": 15421
 }
 ```
 
 ### PUT /channels/:id/unsubscribe
-Cancela inscrição em um canal.
+Unsubscribes from a channel.
 
 ### GET /channels/:id/avatar
-Obtém o avatar do canal.
+Gets the channel avatar.
 
 ### GET /channels/:id/banner
-Obtém o banner do canal.
+Gets the channel banner.
 
 ### DELETE /channels/:id
-Remove um canal do sistema.
+Removes a channel from the system.
 
 ---
 
-## 💬 Comentários
+## 💬 Comments
 
 ### GET /comments/:videoId
-Obtém comentários de um vídeo.
+Gets comments for a video.
 
-**Parâmetros de URL:**
-- `videoId` (string): ID do vídeo
+**URL Parameters:**
+- `videoId` (string): Video ID
 
-**Parâmetros de Query:**
-- `limit` (number, opcional): Número de comentários por página (padrão: 20)
-- `offset` (number, opcional): Deslocamento para paginação (padrão: 0)
-- `sortBy` (string, opcional): Ordenação (newest, oldest, popular)
+**Query Parameters:**
+- `limit` (number, optional): Number of comments per page (default: 20)
+- `offset` (number, optional): Offset for pagination (default: 0)
+- `sortBy` (string, optional): Sorting (newest, oldest, popular)
 
 **Resposta de Sucesso (200):**
 ```json
@@ -300,51 +300,51 @@ Obtém comentários de um vídeo.
 ```
 
 ### POST /comments
-Adiciona um novo comentário.
+Adds a new comment.
 
 **Content-Type:** `application/json`
 
-**Body para comentário:**
+**Body for comment:**
 ```json
 {
   "videoId": "1",
-  "authorName": "Usuário",
-  "content": "Ótimo vídeo!"
+  "authorName": "User",
+  "content": "Great video!"
 }
 ```
 
-**Body para resposta:**
+**Body for reply:**
 ```json
 {
   "videoId": "1",
-  "authorName": "Usuário",
-  "content": "Concordo!",
+  "authorName": "User",
+  "content": "I agree!",
   "parentId": "1"
 }
 ```
 
 ### PUT /comments/:id/like
-Adiciona um like ao comentário.
+Adds a like to the comment.
 
 ### PUT /comments/:id/dislike
-Adiciona um dislike ao comentário.
+Adds a dislike to the comment.
 
 ### DELETE /comments/:id
-Remove um comentário.
+Removes a comment.
 
 ---
 
-## ⚠️ Códigos de Erro
+## ⚠️ Error Codes
 
-- **400**: Bad Request - Dados inválidos ou ausentes
-- **404**: Not Found - Recurso não encontrado
-- **409**: Conflict - Conflito (ex: nome de canal já existe)
-- **500**: Internal Server Error - Erro interno do servidor
+- **400**: Bad Request - Invalid or missing data
+- **404**: Not Found - Resource not found
+- **409**: Conflict - Conflict (e.g. channel name already exists)
+- **500**: Internal Server Error - Internal server error
 
-## 📋 Notas
+## 📋 Notes
 
-1. **Upload de Vídeos**: Limite de 100MB por arquivo
-2. **Formatos Suportados**: MP4, AVI, MOV, MKV, WMV, FLV, WebM
-3. **Paginação**: Todos os endpoints de listagem suportam paginação
-4. **CORS**: Habilitado para desenvolvimento
-5. **Metadados**: Salvos automaticamente em JSON no formato yt-dlp
+1. **Video Upload**: 100MB limit per file
+2. **Supported Formats**: MP4, AVI, MOV, MKV, WMV, FLV, WebM
+3. **Pagination**: All listing endpoints support pagination
+4. **CORS**: Enabled for development
+5. **Metadata**: Automatically saved in JSON in yt-dlp format

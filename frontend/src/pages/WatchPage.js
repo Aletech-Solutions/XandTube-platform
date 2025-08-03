@@ -2,40 +2,70 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import VideoPlayer from '../components/VideoPlayer';
+import RecommendationsSidebar from '../components/RecommendationsSidebar';
 import { downloadsAPI } from '../services/api';
 import { FaSpinner, FaExclamationTriangle, FaArrowLeft } from 'react-icons/fa';
 
 const WatchContainer = styled.div`
+  display: flex;
   max-width: 100%;
   margin: 0 auto;
   padding: 20px;
   background: #181818;
   min-height: calc(100vh - 56px);
+  gap: 24px;
 
   /* Mobile */
+  @media (max-width: 1024px) {
+    flex-direction: column;
+    gap: 20px;
+  }
+
   @media (max-width: 768px) {
     padding: 10px;
     /* Remove top padding to maximize video space */
     padding-top: 0;
     /* Add bottom padding for mobile navigation */
     padding-bottom: 80px;
+    gap: 16px;
   }
 
   @media (max-width: 480px) {
     padding: 8px;
     padding-top: 0;
     padding-bottom: 80px;
+    gap: 12px;
   }
 
   /* TV/Large screens */
   @media (min-width: 1920px) {
     padding: 40px;
     max-width: 1800px;
+    gap: 32px;
   }
   
   @media (min-width: 2560px) {
     padding: 60px;
     max-width: 2400px;
+    gap: 40px;
+  }
+`;
+
+const MainContent = styled.div`
+  flex: 1;
+  min-width: 0; /* Para permitir flexbox shrink */
+  
+  @media (max-width: 1024px) {
+    flex: none;
+  }
+`;
+
+const SidebarContent = styled.div`
+  width: 350px;
+  flex-shrink: 0;
+  
+  @media (max-width: 1024px) {
+    width: 100%;
   }
 `;
 
@@ -443,46 +473,52 @@ const WatchPage = () => {
 
   return (
     <WatchContainer>
-      <BackButton onClick={handleBack}>
-        <FaArrowLeft />
-        Voltar
-      </BackButton>
+      <MainContent>
+        <BackButton onClick={handleBack}>
+          <FaArrowLeft />
+          Voltar
+        </BackButton>
+        
+        <VideoSection>
+          <VideoPlayer video={video} />
+        </VideoSection>
+        
+        <VideoDetails>
+          <VideoTitle>{video.title}</VideoTitle>
+          
+          <VideoInfo>
+            <InfoItem>
+              <span>{video.viewCount?.toLocaleString() || 'N/A'} visualizações</span>
+            </InfoItem>
+            <InfoItem>
+              <span>Baixado em {formatDate(video.downloadedAt)}</span>
+            </InfoItem>
+            <InfoItem>
+              <span>{video.resolution || 'N/A'}</span>
+            </InfoItem>
+            <InfoItem>
+              <span>{formatFileSize(video.fileSize)}</span>
+            </InfoItem>
+            <InfoItem>
+              <span>{video.duration || 'N/A'}</span>
+            </InfoItem>
+          </VideoInfo>
+          
+          <ChannelInfo>
+            <ChannelName>{video.channelName || 'Canal Desconhecido'}</ChannelName>
+          </ChannelInfo>
+          
+          {video.description && (
+            <Description>
+              {video.description}
+            </Description>
+          )}
+        </VideoDetails>
+      </MainContent>
       
-      <VideoSection>
-        <VideoPlayer video={video} />
-      </VideoSection>
-      
-      <VideoDetails>
-        <VideoTitle>{video.title}</VideoTitle>
-        
-        <VideoInfo>
-          <InfoItem>
-            <span>{video.viewCount?.toLocaleString() || 'N/A'} visualizações</span>
-          </InfoItem>
-          <InfoItem>
-            <span>Baixado em {formatDate(video.downloadedAt)}</span>
-          </InfoItem>
-          <InfoItem>
-            <span>{video.resolution || 'N/A'}</span>
-          </InfoItem>
-          <InfoItem>
-            <span>{formatFileSize(video.fileSize)}</span>
-          </InfoItem>
-          <InfoItem>
-            <span>{video.duration || 'N/A'}</span>
-          </InfoItem>
-        </VideoInfo>
-        
-        <ChannelInfo>
-          <ChannelName>{video.channelName || 'Canal Desconhecido'}</ChannelName>
-        </ChannelInfo>
-        
-        {video.description && (
-          <Description>
-            {video.description}
-          </Description>
-        )}
-      </VideoDetails>
+      <SidebarContent>
+        <RecommendationsSidebar currentVideoId={id} />
+      </SidebarContent>
     </WatchContainer>
   );
 };
