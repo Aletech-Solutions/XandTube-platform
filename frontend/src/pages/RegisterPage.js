@@ -26,6 +26,12 @@ const Logo = styled.div`
   text-align: center;
   margin-bottom: 30px;
   
+  img {
+    height: 60px;
+    width: auto;
+    margin-bottom: 10px;
+  }
+  
   svg {
     font-size: 50px;
     color: #FF0000;
@@ -308,8 +314,7 @@ function RegisterPage() {
     <Container>
       <RegisterCard>
         <Logo>
-          <FaYoutube />
-          <h1>XandTube</h1>
+          <img src="/logo.png" alt="XandTube" />
           <p>Crie sua conta</p>
         </Logo>
 

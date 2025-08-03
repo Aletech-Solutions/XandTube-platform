@@ -1,3 +1,3 @@
-# Esta pasta armazena os vídeos baixados pelo sistema
+# Esta pasta armazena metadados dos vídeos
 # O arquivo .keep garante que a pasta seja mantida no repositório
 # mesmo quando vazia ou quando todos os arquivos são ignorados pelo .gitignore

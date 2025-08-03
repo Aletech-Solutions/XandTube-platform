@@ -46,26 +46,48 @@ const Logo = styled(Link)`
   margin-right: 40px;
   transition: all 0.2s ease;
   
+  img {
+    height: 32px;
+    width: auto;
+    transition: all 0.2s ease;
+  }
+  
   &:hover, &:focus {
     color: #ff0000;
     border-radius: 4px;
+    
+    img {
+      filter: brightness(1.2);
+    }
   }
 
   /* Mobile */
   @media (max-width: 768px) {
     font-size: 18px;
     margin-right: 20px;
+    
+    img {
+      height: 28px;
+    }
   }
 
   /* TV/Large screens */
   @media (min-width: 1920px) {
     font-size: 28px;
     margin-right: 60px;
+    
+    img {
+      height: 40px;
+    }
   }
   
   @media (min-width: 2560px) {
     font-size: 36px;
     margin-right: 80px;
+    
+    img {
+      height: 48px;
+    }
   }
 `;
 
@@ -308,7 +330,7 @@ function Header() {
   return (
     <HeaderContainer>
       <Logo to="/">
-        XandTube
+        <img src="/logo.png" alt="XandTube" />
       </Logo>
       
       <SearchContainer>

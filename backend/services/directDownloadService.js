@@ -341,11 +341,15 @@ class DirectDownloadService {
         }
       }
 
+      // Ordenar por data de download (mais recente primeiro) e limitar aos 50 mais recentes
+      downloads.sort((a, b) => new Date(b.downloadedAt) - new Date(a.downloadedAt));
+      const limitedDownloads = downloads.slice(0, 50);
+
       // Salvar cache
-      await this.saveCache(downloads);
+      await this.saveCache(limitedDownloads);
       
-      console.log(`✅ Cache construído com ${downloads.length} downloads`);
-      return downloads;
+      console.log(`✅ Cache construído com ${limitedDownloads.length} downloads (limitado aos 50 mais recentes de ${downloads.length} totais)`);
+      return limitedDownloads;
       
     } catch (error) {
       console.error('❌ Erro ao construir cache:', error);
@@ -354,18 +358,25 @@ class DirectDownloadService {
   }
 
   /**
-   * Salva o cache em arquivo
+   * Salva o cache em arquivo (limitado aos 50 vídeos mais recentes)
    */
   async saveCache(downloads) {
     try {
+      // Garantir que temos no máximo 50 downloads, ordenados por data
+      const sortedDownloads = downloads
+        .sort((a, b) => new Date(b.downloadedAt) - new Date(a.downloadedAt))
+        .slice(0, 50);
+
       const cacheData = {
         lastUpdated: new Date().toISOString(),
-        totalDownloads: downloads.length,
-        downloads: downloads
+        totalDownloads: sortedDownloads.length,
+        downloads: sortedDownloads,
+        isLimited: true,
+        maxCacheSize: 50
       };
       
       await fs.writeJson(this.cacheFilePath, cacheData, { spaces: 2 });
-      console.log(`💾 Cache salvo em ${this.cacheFilePath}`);
+      console.log(`💾 Cache salvo com ${sortedDownloads.length} downloads (limitado aos 50 mais recentes)`);
       
     } catch (error) {
       console.error('❌ Erro ao salvar cache:', error);

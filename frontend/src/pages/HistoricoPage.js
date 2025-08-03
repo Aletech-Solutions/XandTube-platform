@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import DownloadCard from '../components/DownloadCard';
 import { downloadsAPI } from '../services/api';
-import { FaHistory, FaSyncAlt, FaDownload, FaHdd } from 'react-icons/fa';
+import { FaHistory, FaSyncAlt, FaDownload, FaHdd, FaTrash } from 'react-icons/fa';
 
 const HistoricoPage = () => {
   const [downloads, setDownloads] = useState([]);
@@ -12,6 +12,7 @@ const HistoricoPage = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [scanning, setScanning] = useState(false);
+  const [flushingCache, setFlushingCache] = useState(false);
 
   useEffect(() => {
     loadDownloads();
@@ -65,6 +66,29 @@ const HistoricoPage = () => {
       console.error('❌ Erro ao escanear pasta de downloads.');
     } finally {
       setScanning(false);
+    }
+  };
+
+  const handleFlushCache = async () => {
+    try {
+      setFlushingCache(true);
+      console.log('🗑️ Iniciando flush cache...');
+      
+      // Usa o método combinado que limpa o cache e recarrega
+      const response = await downloadsAPI.flushAndReload();
+      
+      console.log('✅ Flush cache concluído:', response.data);
+      
+      // Recarrega a página atual
+      await loadDownloads();
+      await loadStats();
+      
+      console.log(`🎉 Cache limpo e recarregado! ${response.data.totalFound || 0} downloads encontrados.`);
+    } catch (err) {
+      console.error('❌ Erro ao fazer flush do cache:', err);
+      console.error('❌ Erro ao limpar cache e recarregar dados.');
+    } finally {
+      setFlushingCache(false);
     }
   };
 
@@ -139,10 +163,19 @@ const HistoricoPage = () => {
           <ActionButtons>
             <ActionButton 
               onClick={handleScanDownloads}
-              disabled={scanning}
+              disabled={scanning || flushingCache}
             >
               <FaSyncAlt className={scanning ? 'spinning' : ''} />
               {scanning ? 'Escaneando...' : 'Escanear Pasta'}
+            </ActionButton>
+            
+            <ActionButton 
+              onClick={handleFlushCache}
+              disabled={scanning || flushingCache}
+              variant="danger"
+            >
+              <FaTrash className={flushingCache ? 'spinning' : ''} />
+              {flushingCache ? 'Limpando Cache...' : 'Flush Cache'}
             </ActionButton>
           </ActionButtons>
         </HeaderContent>
@@ -198,10 +231,17 @@ const HistoricoPage = () => {
             <button onClick={loadDownloads}>Tentar novamente</button>
             <button 
               onClick={handleScanDownloads}
-              disabled={scanning}
+              disabled={scanning || flushingCache}
               style={{ background: '#1976d2' }}
             >
               {scanning ? 'Escaneando...' : 'Escanear Pasta'}
+            </button>
+            <button 
+              onClick={handleFlushCache}
+              disabled={scanning || flushingCache}
+              style={{ background: '#d32f2f' }}
+            >
+              {flushingCache ? 'Limpando Cache...' : 'Flush Cache'}
             </button>
           </div>
           <p style={{ marginTop: '16px', fontSize: '12px', color: '#666' }}>
@@ -220,9 +260,22 @@ const HistoricoPage = () => {
               Tente escanear novamente.
             </p>
           )}
-          <button onClick={handleScanDownloads} disabled={scanning}>
-            {scanning ? 'Escaneando...' : 'Escanear Pasta de Downloads'}
-          </button>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button 
+              onClick={handleScanDownloads} 
+              disabled={scanning || flushingCache}
+              style={{ background: '#1976d2' }}
+            >
+              {scanning ? 'Escaneando...' : 'Escanear Pasta de Downloads'}
+            </button>
+            <button 
+              onClick={handleFlushCache}
+              disabled={scanning || flushingCache}
+              style={{ background: '#d32f2f' }}
+            >
+              {flushingCache ? 'Limpando Cache...' : 'Flush Cache'}
+            </button>
+          </div>
         </EmptyState>
       )}
 
@@ -288,7 +341,7 @@ const ActionButton = styled.button`
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #1976d2;
+  background: ${props => props.variant === 'danger' ? '#d32f2f' : '#1976d2'};
   color: white;
   border: none;
   border-radius: 6px;
@@ -298,7 +351,7 @@ const ActionButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: #1565c0;
+    background: ${props => props.variant === 'danger' ? '#c62828' : '#1565c0'};
   }
 
   &:disabled {

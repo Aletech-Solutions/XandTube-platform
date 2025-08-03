@@ -4,7 +4,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 120000, // 2 minutos
 });
 
 // Interceptor para adicionar token automaticamente
@@ -96,7 +96,7 @@ export const downloadAPI = {
 // API pública para downloads (sem autenticação)
 const publicAPI = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000
+  timeout: 120000 // 2 minutos
 });
 
 // Downloads salvos API (direta - sem banco de dados, acesso público)
@@ -115,6 +115,13 @@ export const downloadsAPI = {
   deleteFiles: (id) => publicAPI.delete(`/direct-downloads/${id}/files`), // Agora público também
   stats: () => publicAPI.get('/direct-downloads/stats'),
   scan: () => publicAPI.get('/direct-downloads/scan/folder'),
+  clearCache: () => publicAPI.post('/direct-downloads/cache/clear'),
+  flushAndReload: async () => {
+    // Primeiro limpa o cache
+    await publicAPI.post('/direct-downloads/cache/clear');
+    // Depois escaneia a pasta para recarregar
+    return publicAPI.get('/direct-downloads/scan/folder');
+  },
   thumbnail: (id) => `${API_BASE_URL}/direct-downloads/${id}/thumbnail`,
   stream: (id) => `${API_BASE_URL}/direct-downloads/${id}/stream`,
   // Métodos de conveniência
