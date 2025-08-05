@@ -1,6 +1,26 @@
 # XandTube - YouTube Clone
 
+![Logo](logo.png)
+
 A complete YouTube clone with video upload, viewing, and commenting features.
+
+## Screenshots
+
+![Interface Principal](images/Captura%20de%20tela%202025-08-05%20155802.png)
+
+![Página de Download](images/Captura%20de%20tela%202025-08-05%20155750.png)
+
+![Sistema de Canais](images/Captura%20de%20tela%202025-08-05%20155739.png)
+
+![Player de Vídeo](images/Captura%20de%20tela%202025-08-05%20155729.png)
+
+![Dashboard](images/Captura%20de%20tela%202025-08-05%20155714.png)
+
+![Autenticação](images/Captura%20de%20tela%202025-08-05%20002453.png)
+
+![Página Inicial](images/Captura%20de%20tela%202025-08-05%20002438.png)
+
+![Funcionalidades](images/Captura%20de%20tela%202025-08-05%20002056.png)
 
 ## Project Structure
 
