@@ -146,7 +146,7 @@ temp/
 *.flac
 *.aac
 
-# Thumbnails and images
+# Thumbnails and images (except in images/ folder and logo.png)
 *.jpg
 *.jpeg
 *.png
@@ -155,6 +155,29 @@ temp/
 *.tiff
 *.webp
 *.ico
+
+# Allow images in the images folder
+!images/*.jpg
+!images/*.jpeg
+!images/*.png
+!images/*.gif
+!images/*.bmp
+!images/*.tiff
+!images/*.webp
+!images/*.ico
+
+# Allow images in frontend/public folder
+!frontend/public/*.jpg
+!frontend/public/*.jpeg
+!frontend/public/*.png
+!frontend/public/*.gif
+!frontend/public/*.bmp
+!frontend/public/*.tiff
+!frontend/public/*.webp
+!frontend/public/*.ico
+
+# Allow logo in root
+!logo.png
 
 # Document files
 *.pdf
