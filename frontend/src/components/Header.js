@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaSearch, FaUpload, FaUserPlus } from 'react-icons/fa';
+import { FaSearch } from 'react-icons/fa';
+import { useSettings } from '../contexts/SettingsContext';
 
 const HeaderContainer = styled.header`
   position: fixed;
@@ -9,8 +10,8 @@ const HeaderContainer = styled.header`
   left: 0;
   right: 0;
   height: 56px;
-  background-color: #202020;
-  border-bottom: 1px solid #303030;
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   padding: 0 16px;
@@ -40,7 +41,7 @@ const Logo = styled(Link)`
   display: flex;
   align-items: center;
   text-decoration: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 20px;
   font-weight: bold;
   margin-right: 40px;
@@ -53,7 +54,7 @@ const Logo = styled(Link)`
   }
   
   &:hover, &:focus {
-    color: #ff0000;
+    color: var(--accent-color);
     border-radius: 4px;
     
     img {
@@ -111,21 +112,21 @@ const SearchInput = styled.input`
   flex: 1;
   height: 32px;
   padding: 0 12px;
-  background-color: #121212;
-  border: 1px solid #303030;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
   border-radius: 2px 0 0 2px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 14px;
   transition: all 0.2s ease;
   
   &:focus {
-    outline: 2px solid #065fd4;
+    outline: 2px solid var(--accent-color);
     outline-offset: 2px;
-    border-color: #065fd4;
+    border-color: var(--accent-color);
   }
   
   &::placeholder {
-    color: #aaa;
+    color: var(--text-muted);
   }
 
   /* Mobile */
@@ -164,11 +165,11 @@ const SearchInput = styled.input`
 const SearchButton = styled.button`
   width: 64px;
   height: 32px;
-  background-color: #303030;
-  border: 1px solid #303030;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
   border-left: none;
   border-radius: 0 2px 2px 0;
-  color: #aaa;
+  color: var(--text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -176,9 +177,9 @@ const SearchButton = styled.button`
   transition: all 0.2s ease;
   
   &:hover, &:focus {
-    background-color: #3d3d3d;
-    color: #fff;
-    outline: 2px solid #065fd4;
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+    outline: 2px solid var(--accent-color);
     outline-offset: 2px;
   }
 
@@ -224,102 +225,72 @@ const SearchButton = styled.button`
   }
 `;
 
-const HeaderActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
 
-  @media (max-width: 768px) {
-    gap: 8px;
-  }
-  
-  @media (max-width: 480px) {
-    display: none; /* Hide action buttons on very small screens */
-  }
-`;
-
-const ActionButton = styled(Link)`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background-color: transparent;
-  border: 1px solid #303030;
-  border-radius: 2px;
-  color: #aaa;
-  text-decoration: none;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover, &:focus {
-    background-color: #3d3d3d;
-    color: #fff;
-    border-color: #aaa;
-    outline: 2px solid #065fd4;
-    outline-offset: 2px;
-  }
-
-  /* Mobile */
-  @media (max-width: 768px) {
-    padding: 6px 8px;
-    font-size: 12px;
-    border-radius: 4px;
-    gap: 4px;
-    
-    svg {
-      font-size: 14px;
-    }
-  }
-  
-  @media (max-width: 600px) {
-    /* Show only icons on smaller tablets */
-    span {
-      display: none;
-    }
-    padding: 8px;
-  }
-
-  /* TV/Large screens */
-  @media (min-width: 1920px) {
-    padding: 12px 24px;
-    font-size: 18px;
-    border-radius: 4px;
-    gap: 12px;
-    
-    svg {
-      font-size: 20px;
-    }
-    
-    &:hover, &:focus {
-      outline: 3px solid #065fd4;
-      outline-offset: 3px;
-      border-color: #fff;
-    }
-  }
-  
-  @media (min-width: 2560px) {
-    padding: 16px 32px;
-    font-size: 22px;
-    border-radius: 6px;
-    gap: 16px;
-    
-    svg {
-      font-size: 24px;
-    }
-    
-    &:hover, &:focus {
-      outline: 4px solid #065fd4;
-      outline-offset: 4px;
-      border-color: #fff;
-    }
-  }
-`;
 
 function Header() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [logoTheme, setLogoTheme] = useState('dark');
   const navigate = useNavigate();
-
+  const { t } = useSettings();
+  
+  // Função para obter o tema do localStorage
+  const getThemeFromLocalStorage = () => {
+    try {
+      const savedSettings = localStorage.getItem('xandtube-settings');
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        const theme = parsed.theme || 'dark';
+        return theme;
+      }
+    } catch (error) {
+      console.error('Erro ao ler tema do localStorage:', error);
+    }
+    return 'dark';
+  };
+  
+  // Carregar tema inicial do localStorage
+  useEffect(() => {
+    const initialTheme = getThemeFromLocalStorage();
+    setLogoTheme(initialTheme);
+  }, []);
+  
+  // Listener para mudanças no localStorage
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'xandtube-settings') {
+        const newTheme = getThemeFromLocalStorage();
+        setLogoTheme(newTheme);
+      }
+    };
+    
+    // Listener para mudanças no mesmo window
+    const handleLocalStorageChange = () => {
+      const newTheme = getThemeFromLocalStorage();
+      setLogoTheme(newTheme);
+    };
+    
+    // Fallback: verificar mudanças a cada 500ms
+    const interval = setInterval(() => {
+      const currentTheme = getThemeFromLocalStorage();
+      setLogoTheme(prevTheme => {
+        if (prevTheme !== currentTheme) {
+          return currentTheme;
+        }
+        return prevTheme;
+      });
+    }, 500);
+    
+    window.addEventListener('storage', handleStorageChange);
+    // Criar um evento customizado para mudanças locais
+    window.addEventListener('localStorageChange', handleLocalStorageChange);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('localStorageChange', handleLocalStorageChange);
+    };
+  }, []);
+  
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -330,14 +301,18 @@ function Header() {
   return (
     <HeaderContainer>
       <Logo to="/">
-        <img src="/logo.png" alt="XandTube" />
+        <img 
+          src={logoTheme === 'light' ? "/logo-white-mode.png" : "/logo.png"} 
+          alt="XandTube"
+          key={logoTheme} // Força re-render quando o tema muda
+        />
       </Logo>
       
       <SearchContainer>
         <form onSubmit={handleSearch} style={{ display: 'flex', flex: 1 }}>
           <SearchInput
             type="text"
-            placeholder="Pesquisar"
+            placeholder={t('search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -347,16 +322,7 @@ function Header() {
         </form>
       </SearchContainer>
       
-      <HeaderActions>
-        <ActionButton to="/upload">
-          <FaUpload />
-          <span>Upload</span>
-        </ActionButton>
-        <ActionButton to="/create-channel">
-          <FaUserPlus />
-          <span>Criar Canal</span>
-        </ActionButton>
-      </HeaderActions>
+
     </HeaderContainer>
   );
 }

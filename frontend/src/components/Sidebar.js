@@ -6,11 +6,12 @@ import {
   FaFire, 
   FaHistory, 
   FaThumbsUp,
-  FaDownload,
   FaFilm,
   FaYoutube,
-  FaUsers
+  FaUsers,
+  FaCog
 } from 'react-icons/fa';
+import { useSettings } from '../contexts/SettingsContext';
 
 const SidebarContainer = styled.aside`
   position: fixed;
@@ -18,7 +19,7 @@ const SidebarContainer = styled.aside`
   left: 0;
   width: 240px;
   height: calc(100vh - 56px);
-  background-color: #212121;
+  background-color: var(--bg-secondary);
   overflow-y: auto;
   z-index: 999;
   
@@ -28,7 +29,7 @@ const SidebarContainer = styled.aside`
 `;
 
 const SidebarSection = styled.div`
-  border-bottom: 1px solid #303030;
+  border-bottom: 1px solid var(--border-color);
   padding: 12px 0;
 `;
 
@@ -36,19 +37,19 @@ const SidebarItem = styled(Link)`
   display: flex;
   align-items: center;
   padding: 10px 24px;
-  color: #aaa;
+  color: var(--text-muted);
   text-decoration: none;
   font-size: 14px;
   transition: all 0.2s;
   
   &:hover {
-    background-color: #3d3d3d;
-    color: #fff;
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
   }
   
   &.active {
-    background-color: #3d3d3d;
-    color: #fff;
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
   }
   
   svg {
@@ -59,7 +60,7 @@ const SidebarItem = styled(Link)`
 
 const SidebarTitle = styled.div`
   padding: 8px 24px;
-  color: #aaa;
+  color: var(--text-muted);
   font-size: 14px;
   font-weight: 500;
   text-transform: uppercase;
@@ -68,6 +69,7 @@ const SidebarTitle = styled.div`
 
 function Sidebar() {
   const location = useLocation();
+  const { t } = useSettings();
 
   const isActive = (path) => {
     if (path === '/') {
@@ -84,7 +86,7 @@ function Sidebar() {
           className={isActive('/') ? 'active' : ''}
         >
           <FaHome />
-          Início
+          {t('home')}
         </SidebarItem>
         
         <SidebarItem 
@@ -92,7 +94,7 @@ function Sidebar() {
           className={isActive('/trending') ? 'active' : ''}
         >
           <FaFire />
-          Em alta
+          {t('trending')}
         </SidebarItem>
         
         <SidebarItem 
@@ -100,19 +102,19 @@ function Sidebar() {
           className={isActive('/channels') ? 'active' : ''}
         >
           <FaUsers />
-          Canais
+          {t('channels')}
         </SidebarItem>
       </SidebarSection>
       
       <SidebarSection>
-        <SidebarTitle>Biblioteca</SidebarTitle>
+        <SidebarTitle>{t('library')}</SidebarTitle>
         
         <SidebarItem 
           to="/liked" 
           className={isActive('/liked') ? 'active' : ''}
         >
           <FaThumbsUp />
-          Vídeos curtidos
+          {t('likedVideos')}
         </SidebarItem>
         
         <SidebarItem 
@@ -120,7 +122,7 @@ function Sidebar() {
           className={isActive('/historico') ? 'active' : ''}
         >
           <FaHistory />
-          Histórico
+          {t('history')}
         </SidebarItem>
         
         <SidebarItem 
@@ -128,19 +130,27 @@ function Sidebar() {
           className={isActive('/download') ? 'active' : ''}
         >
           <FaYoutube />
-          Baixar Vídeos
+          {t('downloads')}
         </SidebarItem>
       </SidebarSection>
       
       <SidebarSection>
-        <SidebarTitle>Mais do XandTube</SidebarTitle>
+        <SidebarTitle>{t('moreFromXandTube')}</SidebarTitle>
         
         <SidebarItem 
           to="/movies" 
           className={isActive('/movies') ? 'active' : ''}
         >
           <FaFilm />
-          Filmes e programas
+          {t('movies')}
+        </SidebarItem>
+        
+        <SidebarItem 
+          to="/settings" 
+          className={isActive('/settings') ? 'active' : ''}
+        >
+          <FaCog />
+          {t('settings')}
         </SidebarItem>
       </SidebarSection>
     </SidebarContainer>

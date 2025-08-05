@@ -2,6 +2,7 @@ const sequelize = require('../config/database');
 const User = require('./User');
 const Video = require('./Video');
 const Channel = require('./Channel');
+const ChannelTracking = require('./ChannelTracking');
 const Comment = require('./Comment');
 const Download = require('./Download');
 
@@ -34,6 +35,10 @@ Comment.belongsTo(Comment, { foreignKey: 'parent_id', as: 'parent' });
 // User -> Download (Um usuário pode ter múltiplos downloads)
 User.hasMany(Download, { foreignKey: 'userId', as: 'downloads' });
 Download.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// User -> ChannelTracking (Um usuário pode trackear múltiplos canais)
+User.hasMany(ChannelTracking, { foreignKey: 'userId', as: 'trackedChannels' });
+ChannelTracking.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 // Video -> Download (Um vídeo pode estar associado a um download, opcional)
 Video.belongsTo(Download, { foreignKey: 'downloadId', as: 'associatedDownload' });
@@ -86,6 +91,7 @@ module.exports = {
   User,
   Video,
   Channel,
+  ChannelTracking,
   Comment,
   Download,
   syncDatabase

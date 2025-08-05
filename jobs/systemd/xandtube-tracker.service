@@ -1,0 +1,32 @@
+# XandTube Channel Tracking Systemd Service
+# Place this file in /etc/systemd/system/ and enable with:
+# sudo systemctl enable xandtube-tracker.service
+# sudo systemctl start xandtube-tracker.service
+
+[Unit]
+Description=XandTube Channel Tracking Job Scheduler
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=xandtube
+Group=xandtube
+WorkingDirectory=/path/to/XandTube/jobs
+Environment=PATH=/path/to/XandTube/jobs/venv/bin
+ExecStart=/path/to/XandTube/jobs/venv/bin/python scheduler.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=xandtube-tracker
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/path/to/XandTube/jobs/logs /path/to/XandTube/videos
+
+[Install]
+WantedBy=multi-user.target

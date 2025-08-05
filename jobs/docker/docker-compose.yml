@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  xandtube-tracker:
+    build: .
+    container_name: xandtube-channel-tracker
+    restart: unless-stopped
+    
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=xandtube
+      - DB_USER=postgres
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - API_BASE_URL=http://xandtube-backend:3001/api
+      - LOG_LEVEL=INFO
+    
+    volumes:
+      - ./logs:/app/logs
+      - ../videos:/app/videos
+      - ./.env:/app/.env:ro
+    
+    depends_on:
+      - postgres
+      - xandtube-backend
+    
+    networks:
+      - xandtube-network
+
+  # This assumes you have a PostgreSQL container
+  postgres:
+    image: postgres:15
+    container_name: xandtube-postgres
+    restart: unless-stopped
+    
+    environment:
+      - POSTGRES_DB=xandtube
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    
+    networks:
+      - xandtube-network
+
+volumes:
+  postgres_data:
+
+networks:
+  xandtube-network:
+    external: true

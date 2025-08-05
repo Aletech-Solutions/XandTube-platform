@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import DownloadCard from '../components/DownloadCard';
 import { downloadsAPI } from '../services/api';
 import { FaHistory, FaSyncAlt, FaDownload, FaHdd, FaTrash } from 'react-icons/fa';
+import { useSettings } from '../contexts/SettingsContext';
 
 const HistoricoPage = () => {
+  const { t } = useSettings();
   const [downloads, setDownloads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,12 +16,7 @@ const HistoricoPage = () => {
   const [scanning, setScanning] = useState(false);
   const [flushingCache, setFlushingCache] = useState(false);
 
-  useEffect(() => {
-    loadDownloads();
-    loadStats();
-  }, [page]);
-
-  const loadDownloads = async () => {
+  const loadDownloads = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -37,9 +34,9 @@ const HistoricoPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       console.log('🔄 Carregando estatísticas...');
       const response = await downloadsAPI.stats();
@@ -49,7 +46,12 @@ const HistoricoPage = () => {
       console.error('❌ Erro ao carregar estatísticas:', err);
       // Não define erro para stats, apenas logs
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadDownloads();
+    loadStats();
+  }, [loadDownloads, loadStats]);
 
   const handleScanDownloads = async () => {
     try {
@@ -109,7 +111,7 @@ const HistoricoPage = () => {
       pages.push(
         <PageButton 
           key={i} 
-          active={i === page}
+          $active={i === page}
           onClick={() => setPage(i)}
         >
           {i}
@@ -157,7 +159,7 @@ const HistoricoPage = () => {
       <Header>
         <HeaderContent>
           <Title>
-            <FaHistory /> Histórico de Downloads
+            <FaHistory /> {t('yourDownloads')}
           </Title>
           
           <ActionButtons>
@@ -166,7 +168,7 @@ const HistoricoPage = () => {
               disabled={scanning || flushingCache}
             >
               <FaSyncAlt className={scanning ? 'spinning' : ''} />
-              {scanning ? 'Escaneando...' : 'Escanear Pasta'}
+              {scanning ? t('scanning') : t('scanFolder')}
             </ActionButton>
             
             <ActionButton 
@@ -186,25 +188,25 @@ const HistoricoPage = () => {
               <StatCard>
                 <StatIcon><FaDownload /></StatIcon>
                 <StatValue>{stats.total || '0'}</StatValue>
-                <StatLabel>Total de Downloads</StatLabel>
+                <StatLabel>{t('totalDownloads')}</StatLabel>
               </StatCard>
               
               <StatCard>
                 <StatIcon><FaDownload /></StatIcon>
                 <StatValue>{stats.completed || '0'}</StatValue>
-                <StatLabel>Concluídos</StatLabel>
+                <StatLabel>{t('completed')}</StatLabel>
               </StatCard>
               
               <StatCard>
                 <StatIcon><FaHdd /></StatIcon>
                 <StatValue>{stats.totalSizeFormatted || '0 B'}</StatValue>
-                <StatLabel>Espaço Utilizado</StatLabel>
+                <StatLabel>{t('spaceUsed')}</StatLabel>
               </StatCard>
               
               <StatCard>
                 <StatIcon><FaDownload /></StatIcon>
                 <StatValue>{downloads.length}</StatValue>
-                <StatLabel>Exibindo na Lista</StatLabel>
+                <StatLabel>{t('showingInList')}</StatLabel>
               </StatCard>
             </>
           ) : (
@@ -252,8 +254,8 @@ const HistoricoPage = () => {
 
       {!loading && !error && downloads.length === 0 && (
         <EmptyState>
-          <h3>Nenhum download encontrado</h3>
-          <p>Seus downloads do YouTube aparecerão aqui.</p>
+          <h3>{t('noDownloadsFound')}</h3>
+          <p>{t('downloadDescription')}</p>
           {stats && stats.total > 0 && (
             <p style={{ color: '#ff9800', fontSize: '14px', marginBottom: '16px' }}>
               ⚠️ Existem {stats.total} downloads nas estatísticas, mas nenhum foi carregado na lista.
@@ -266,7 +268,7 @@ const HistoricoPage = () => {
               disabled={scanning || flushingCache}
               style={{ background: '#1976d2' }}
             >
-              {scanning ? 'Escaneando...' : 'Escanear Pasta de Downloads'}
+              {scanning ? t('scanning') : t('scanDownloadsFolder')}
             </button>
             <button 
               onClick={handleFlushCache}
@@ -503,15 +505,15 @@ const PaginationContainer = styled.div`
 const PageButton = styled.button`
   padding: 8px 12px;
   border: 1px solid #404040;
-  background: ${props => props.active ? '#1976d2' : 'transparent'};
-  color: ${props => props.active ? 'white' : '#aaa'};
+  background: ${props => props.$active ? '#1976d2' : 'transparent'};
+  color: ${props => props.$active ? 'white' : '#aaa'};
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: ${props => props.active ? '#1565c0' : '#404040'};
+    background: ${props => props.$active ? '#1565c0' : '#404040'};
     color: white;
   }
 

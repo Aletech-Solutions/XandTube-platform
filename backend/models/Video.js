@@ -84,8 +84,7 @@ const Video = sequelize.define('Video', {
     type: DataTypes.STRING
   },
   
-  // Relacionamento opcional com Download (comentado temporariamente até sincronização do DB)
-  /*
+  // Relacionamento opcional com Download
   downloadId: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -96,7 +95,6 @@ const Video = sequelize.define('Video', {
     },
     comment: 'ID do download associado (se o vídeo veio de um download)'
   }
-  */
 });
 
 module.exports = Video;

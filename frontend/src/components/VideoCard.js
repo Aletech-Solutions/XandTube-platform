@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { useSettings } from '../contexts/SettingsContext';
 
 const CardContainer = styled.div`
   width: 100%;
@@ -97,6 +98,8 @@ const StyledLink = styled(Link)`
 `;
 
 function VideoCard({ video }) {
+  const { t } = useSettings();
+  
   const formatViews = (views) => {
     if (!views || typeof views !== 'number') return '0';
     if (views >= 1000000) {
@@ -165,7 +168,7 @@ function VideoCard({ video }) {
           </StyledLink>
           
           <VideoStats>
-            {formatViews(video.views)} visualizações • {formatDate(video.uploadDate)}
+            {formatViews(video.views)} {t('views')} • {formatDate(video.uploadDate)}
           </VideoStats>
         </VideoDetails>
       </VideoInfo>

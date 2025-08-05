@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import DownloadCard from '../components/DownloadCard';
 import { downloadsAPI } from '../services/api';
+import { useSettings } from '../contexts/SettingsContext';
 
 const HomeContainer = styled.div`
   max-width: 1400px;
@@ -260,6 +261,7 @@ const ErrorState = styled.div`
 
 function HomePage() {
   const [searchParams] = useSearchParams();
+  const { t } = useSettings();
   const [downloads, setDownloads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -269,11 +271,7 @@ function HomePage() {
 
   const searchQuery = searchParams.get('search');
 
-  useEffect(() => {
-    loadDownloads();
-  }, [searchQuery]);
-
-  const loadDownloads = async (page = 1, append = false) => {
+  const loadDownloads = useCallback(async (page = 1, append = false) => {
     try {
       if (!append) {
         setLoading(true);
@@ -304,7 +302,11 @@ function HomePage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [searchQuery]);
+
+  useEffect(() => {
+    loadDownloads();
+  }, [loadDownloads]);
 
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
@@ -319,34 +321,34 @@ function HomePage() {
       {searchQuery && (
         <SearchInfo>
           <SearchTitle>
-            Resultados da busca por: <SearchQuery>"{searchQuery}"</SearchQuery>
+            {t('searchResultsFor')} <SearchQuery>"{searchQuery}"</SearchQuery>
           </SearchTitle>
           {!loading && downloads.length > 0 && (
             <p style={{ color: '#aaa', margin: 0 }}>
-              {downloads.length} vídeo{downloads.length !== 1 ? 's' : ''} encontrado{downloads.length !== 1 ? 's' : ''}
+              {downloads.length} {downloads.length === 1 ? t('videosFound') : t('videosFoundPlural')}
             </p>
           )}
         </SearchInfo>
       )}
 
       <SectionTitle>
-        {searchQuery ? 'Resultados da Busca' : 'Seus Downloads'}
+        {searchQuery ? t('searchResults') : t('yourDownloads')}
         {!searchQuery && (
           <ViewAllLink as={Link} to="/historico">
-            Ver todos
+            {t('seeAll')}
           </ViewAllLink>
         )}
       </SectionTitle>
 
       {loading && (
         <LoadingState>
-          <p>Carregando downloads...</p>
+          <p>{t('loadingDownloads')}</p>
         </LoadingState>
       )}
 
       {error && (
         <ErrorState>
-          <h3>Erro ao carregar downloads</h3>
+          <h3>{t('errorLoadingDownloads')}</h3>
           <p>{error}</p>
         </ErrorState>
       )}
@@ -355,14 +357,14 @@ function HomePage() {
         <EmptyState>
           <h3>
             {searchQuery 
-              ? 'Nenhum resultado encontrado' 
-              : 'Nenhum download encontrado'
+              ? t('noResultsFound')
+              : t('noDownloadsFound')
             }
           </h3>
           <p>
             {searchQuery 
-              ? 'Tente pesquisar com outros termos.'
-              : 'Seus downloads do YouTube aparecerão aqui. Vá até a página de Download para baixar vídeos.'
+              ? t('tryOtherTerms')
+              : t('downloadDescription')
             }
           </p>
         </EmptyState>
@@ -384,7 +386,7 @@ function HomePage() {
               onClick={handleLoadMore} 
               disabled={loadingMore}
             >
-              {loadingMore ? 'Carregando...' : 'Carregar Mais'}
+              {loadingMore ? t('loading') : t('loadMore')}
             </LoadMoreButton>
           )}
         </>

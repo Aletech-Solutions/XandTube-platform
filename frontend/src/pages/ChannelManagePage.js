@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { useSettings } from '../contexts/SettingsContext';
 import { 
   FaUpload, FaUser, FaImage, FaSave, FaArrowLeft, 
   FaSpinner, FaCheckCircle, FaExclamationTriangle 
@@ -214,6 +215,7 @@ const StatusMessage = styled.div`
 const ChannelManagePage = () => {
   const { channelId } = useParams();
   const navigate = useNavigate();
+  const { t } = useSettings();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
   // Estados para imagens
@@ -412,7 +414,7 @@ const ChannelManagePage = () => {
         <Container>
           <BackButton onClick={() => navigate('/channels')}>
             <FaArrowLeft />
-            Voltar aos Canais
+            {t('backToChannels')}
           </BackButton>
           
           <Header>

@@ -541,6 +541,124 @@ class YtdlpService {
       }
     }
   }
+
+  // Get channel information
+  async getChannelInfo(channelUrl) {
+    try {
+      console.log('🔍 Obtendo informações do canal:', channelUrl);
+      
+      const { stdout } = await execPromise(
+        `yt-dlp --dump-json --flat-playlist --playlist-end 1 --no-warnings "${channelUrl}"`, 
+        { maxBuffer: 1024 * 1024 * 10 } // 10MB buffer
+      );
+      
+      if (!stdout || stdout.trim() === '') {
+        throw new Error('YT-DLP retornou saída vazia para o canal');
+      }
+
+      // Parse the first line which should contain channel info
+      const lines = stdout.trim().split('\n').filter(line => line.trim());
+      let channelInfo = null;
+
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line);
+          
+          // Look for channel information
+          if (parsed._type === 'playlist' || parsed.channel || parsed.uploader) {
+            channelInfo = parsed;
+            break;
+          }
+        } catch (parseError) {
+          console.warn('⚠️ Linha JSON inválida ignorada:', parseError.message);
+        }
+      }
+
+      if (!channelInfo) {
+        // Fallback: try to get channel info using different approach
+        const { stdout: fallbackStdout } = await execPromise(
+          `yt-dlp --dump-json --no-warnings --playlist-end 1 "${channelUrl}"`,
+          { maxBuffer: 1024 * 1024 * 10 }
+        );
+        
+        const fallbackLines = fallbackStdout.trim().split('\n').filter(line => line.trim());
+        if (fallbackLines.length > 0) {
+          channelInfo = JSON.parse(fallbackLines[0]);
+        }
+      }
+
+      if (!channelInfo) {
+        throw new Error('Não foi possível extrair informações do canal');
+      }
+
+      console.log('✅ Informações do canal obtidas com sucesso!');
+      return channelInfo;
+      
+    } catch (error) {
+      console.error('❌ Erro ao obter informações do canal:', error.message);
+      throw new Error(`Erro ao obter informações do canal: ${error.message}`);
+    }
+  }
+
+  // Get new videos from channel within date range
+  async getChannelVideosInDateRange(channelUrl, fromDate, toDate) {
+    try {
+      console.log(`🔍 Buscando vídeos do canal entre ${fromDate} e ${toDate}`);
+      
+      // Format dates for yt-dlp (YYYYMMDD format)
+      const formatDate = (date) => {
+        const d = new Date(date);
+        return d.getFullYear().toString() + 
+               (d.getMonth() + 1).toString().padStart(2, '0') + 
+               d.getDate().toString().padStart(2, '0');
+      };
+
+      const fromDateFormatted = formatDate(fromDate);
+      const toDateFormatted = formatDate(toDate);
+
+      const { stdout } = await execPromise(
+        `yt-dlp --dump-json --flat-playlist --dateafter ${fromDateFormatted} --datebefore ${toDateFormatted} --no-warnings "${channelUrl}"`,
+        { maxBuffer: 1024 * 1024 * 50 } // 50MB buffer for large channels
+      );
+      
+      if (!stdout || stdout.trim() === '') {
+        console.log('ℹ️ Nenhum vídeo encontrado no período especificado');
+        return [];
+      }
+
+      const lines = stdout.trim().split('\n').filter(line => line.trim());
+      const videos = [];
+
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line);
+          
+          // Skip playlist info, only get video entries
+          if (parsed._type !== 'playlist' && parsed.id) {
+            videos.push({
+              id: parsed.id,
+              title: parsed.title || `Vídeo ${videos.length + 1}`,
+              url: parsed.url || `https://www.youtube.com/watch?v=${parsed.id}`,
+              upload_date: parsed.upload_date,
+              duration: parsed.duration || 0,
+              thumbnail: parsed.thumbnail || parsed.thumbnails?.[0]?.url || '',
+              description: parsed.description || '',
+              view_count: parsed.view_count || 0
+            });
+          }
+        } catch (parseError) {
+          console.warn('⚠️ Linha JSON inválida ignorada:', parseError.message);
+        }
+      }
+
+      console.log(`✅ Encontrados ${videos.length} vídeos no período especificado`);
+      return videos;
+      
+    } catch (error) {
+      console.error('❌ Erro ao buscar vídeos do canal:', error.message);
+      throw new Error(`Erro ao buscar vídeos do canal: ${error.message}`);
+    }
+  }
 }
 
 module.exports = new YtdlpService();

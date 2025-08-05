@@ -13,6 +13,7 @@ const { syncDatabase } = require('./models');
 const authRoutes = require('./routes/auth');
 const videoRoutes = require('./routes/videos');
 const channelRoutes = require('./routes/channels');
+const channelTrackingRoutes = require('./routes/channelTracking');
 const commentRoutes = require('./routes/comments');
 const downloadRoutes = require('./routes/download');
 // const downloadsRoutes = require('./routes/downloads'); // Comentado devido a problemas de banco
@@ -43,6 +44,7 @@ fs.ensureDirSync(path.join(videosPath, 'images'));
 app.use('/api/auth', authRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/channels', channelRoutes);
+app.use('/api/channel-tracking', channelTrackingRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/download', downloadRoutes);
 // app.use('/api/downloads', downloadsRoutes); // Comentado devido a problemas de banco

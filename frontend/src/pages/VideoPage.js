@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { useSettings } from '../contexts/SettingsContext';
 import { FaThumbsUp, FaThumbsDown, FaShare, FaDownload } from 'react-icons/fa';
 import { videosAPI, commentsAPI, channelsAPI } from '../services/api';
 
@@ -232,6 +233,7 @@ const ErrorDescription = styled.p`
 
 function VideoPage() {
   const { id } = useParams();
+  const { t } = useSettings();
   const [video, setVideo] = useState(null);
   const [channel, setChannel] = useState(null);
   const [comments, setComments] = useState([]);
@@ -412,7 +414,7 @@ function VideoPage() {
 
         <VideoMeta>
           <VideoStats>
-            {formatViews(video.views)} visualizações
+            {formatViews(video.views)} {t('views')}
           </VideoStats>
           
           <VideoActions>
@@ -456,7 +458,7 @@ function VideoPage() {
           <ChannelDetails>
             <ChannelName>{video.channelName}</ChannelName>
             <ChannelSubs>
-              {channel ? formatSubscribers(channel.subscribers) : '0'} inscritos
+              {channel ? formatSubscribers(channel.subscribers) : '0'} {t('subscribers')}
             </ChannelSubs>
           </ChannelDetails>
           
@@ -498,7 +500,7 @@ function VideoPage() {
       <Sidebar>
         <SidebarTitle>Próximos vídeos</SidebarTitle>
         <div style={{ color: '#aaa', textAlign: 'center', padding: '40px 0' }}>
-          Recomendações em breve...
+          {t('recommendationsSoon')}
         </div>
       </Sidebar>
     </VideoPageContainer>

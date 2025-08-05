@@ -8,6 +8,7 @@ import {
 import api from '../services/api';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
+import { useSettings } from '../contexts/SettingsContext';
 
 const spin = keyframes`
   0% { transform: rotate(0deg); }
@@ -900,6 +901,7 @@ const InfoMessage = styled.div`
 
 function DownloadPage() {
   const navigate = useNavigate();
+  const { t } = useSettings();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -907,7 +909,6 @@ function DownloadPage() {
   const [selectedQuality, setSelectedQuality] = useState('best');
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
-  const [downloadId, setDownloadId] = useState(null);
   const [error, setError] = useState('');
   const [saveToLibrary, setSaveToLibrary] = useState(true);
   const [playlistProgress, setPlaylistProgress] = useState(null);
@@ -1096,7 +1097,6 @@ function DownloadPage() {
       });
 
       const { downloadId } = response.data;
-      setDownloadId(downloadId);
 
       // Tenta conectar WebSocket primeiro
       try {
@@ -1131,11 +1131,11 @@ function DownloadPage() {
   const formatViews = (views) => {
     if (!views || typeof views !== 'number') return 'N/A';
     if (views >= 1000000) {
-      return `${(views / 1000000).toFixed(1)}M visualizações`;
+      return `${(views / 1000000).toFixed(1)}M ${t('views')}`;
     } else if (views >= 1000) {
-      return `${(views / 1000).toFixed(1)}K visualizações`;
+      return `${(views / 1000).toFixed(1)}K ${t('views')}`;
     }
-    return `${views} visualizações`;
+    return `${views} ${t('views')}`;
   };
 
   const getStatusIcon = (status) => {
@@ -1154,7 +1154,7 @@ function DownloadPage() {
     switch (status) {
       case 'pending': return 'Aguardando...';
       case 'starting': return 'Iniciando...';
-      case 'downloading': return 'Baixando...';
+      case 'downloading': return t('downloading');
       case 'completed': return 'Concluído';
       case 'error': return `Erro: ${error || 'Desconhecido'}`;
       case 'skipped': return 'Ignorado';
@@ -1172,19 +1172,19 @@ function DownloadPage() {
         <DownloadContainer>
           <Title>
             <FaDownload />
-            Baixar Vídeos do YouTube
+            {t('downloadYouTubeVideos')}
           </Title>
 
           <InfoMessage>
             <FaInfoCircle />
-            Use esta ferramenta para baixar vídeos e playlists do YouTube. Os vídeos serão salvos em sua biblioteca pessoal.
+            {t('downloadToolDescription')}
           </InfoMessage>
 
           <UrlInputSection>
             <InputGroup>
               <UrlInput
                 type="text"
-                placeholder="Cole a URL do vídeo ou playlist do YouTube aqui..."
+                placeholder={t('pasteVideoUrl')}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleAnalyze()}
@@ -1195,7 +1195,7 @@ function DownloadPage() {
                 disabled={loading || downloading || !url.trim()}
               >
                 {loading ? <FaSpinner className="spin" /> : <FaYoutube />}
-                {loading ? 'Analisando...' : 'Analisar'}
+                {loading ? t('analyzing') : t('analyze')}
               </AnalyzeButton>
             </InputGroup>
           </UrlInputSection>
@@ -1215,11 +1215,11 @@ function DownloadPage() {
                   <h2>{videoInfo.title}</h2>
                   <p>
                     <FaVideo />
-                    Canal: {videoInfo.channelName}
+                    {t('channel')}: {videoInfo.channelName}
                   </p>
                   <p>
                     <FaClock />
-                    Duração: {formatDuration(videoInfo.duration)}
+                    {t('duration')}: {formatDuration(videoInfo.duration)}
                   </p>
                   <p>
                     <FaEye />
@@ -1233,7 +1233,7 @@ function DownloadPage() {
               )}
 
               <QualitySection>
-                <h3>Qualidade do Download</h3>
+                <h3>{t('downloadQuality')}</h3>
                 <QualityOptions>
                   <QualityOption selected={selectedQuality === 'best'}>
                     <input
@@ -1243,7 +1243,7 @@ function DownloadPage() {
                       checked={selectedQuality === 'best'}
                       onChange={(e) => setSelectedQuality(e.target.value)}
                     />
-                    <span>Melhor Qualidade</span>
+                    <span>{t('bestQuality')}</span>
                   </QualityOption>
                   <QualityOption selected={selectedQuality === '1080p'}>
                     <input
@@ -1285,14 +1285,14 @@ function DownloadPage() {
                   disabled={downloading}
                 >
                   <FaDownload />
-                  {downloading ? 'Baixando...' : 'Baixar Vídeo'}
+                  {downloading ? t('downloading') : t('downloadVideo')}
                 </DownloadButton>
                 <DownloadButton
                   onClick={() => setSaveToLibrary(!saveToLibrary)}
                   disabled={downloading}
                 >
                   <FaFolder />
-                  {saveToLibrary ? 'Salvar na Biblioteca' : 'Apenas Baixar'}
+                  {saveToLibrary ? t('saveToLibrary') : t('onlyDownload')}
                 </DownloadButton>
               </DownloadOptions>
             </VideoInfo>
@@ -1314,14 +1314,14 @@ function DownloadPage() {
                     <img src={video.thumbnail} alt={video.title} />
                     <div>
                       <h4>{index + 1}. {video.title}</h4>
-                      <p>Duração: {formatDuration(video.duration)}</p>
+                      <p>{t('duration')}: {formatDuration(video.duration)}</p>
                     </div>
                   </VideoItem>
                 ))}
               </VideoList>
 
               <QualitySection>
-                <h3>Qualidade do Download</h3>
+                <h3>{t('downloadQuality')}</h3>
                 <QualityOptions>
                   <QualityOption selected={selectedQuality === 'best'}>
                     <input
@@ -1331,7 +1331,7 @@ function DownloadPage() {
                       checked={selectedQuality === 'best'}
                       onChange={(e) => setSelectedQuality(e.target.value)}
                     />
-                    <span>Melhor Qualidade</span>
+                    <span>{t('bestQuality')}</span>
                   </QualityOption>
                   <QualityOption selected={selectedQuality === '720p'}>
                     <input
@@ -1370,7 +1370,7 @@ function DownloadPage() {
                   disabled={downloading}
                 >
                   <FaFolder />
-                  {saveToLibrary ? 'Salvar na Biblioteca' : 'Apenas Baixar'}
+                  {saveToLibrary ? t('saveToLibrary') : t('onlyDownload')}
                 </DownloadButton>
               </DownloadOptions>
             </VideoInfo>
@@ -1378,7 +1378,7 @@ function DownloadPage() {
 
           {downloading && !playlistProgress && (
             <ProgressSection>
-              <h3>Progresso do Download</h3>
+                              <h3>{t('downloadProgress')}</h3>
               <ProgressBar>
                 <ProgressFill progress={downloadProgress || 0}>
                   {(downloadProgress || 0).toFixed(0)}%
@@ -1387,9 +1387,9 @@ function DownloadPage() {
               <ProgressInfo>
                 <span>
                   <FaSpinner className="spin" />
-                  Baixando...
+                  {t('downloading')}
                 </span>
-                <span>{(downloadProgress || 0).toFixed(0)}% completo</span>
+                <span>{(downloadProgress || 0).toFixed(0)}% {t('complete')}</span>
               </ProgressInfo>
             </ProgressSection>
           )}

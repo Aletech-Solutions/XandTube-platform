@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { useSettings } from '../contexts/SettingsContext';
 import VideoGrid from '../components/VideoGrid';
 import { channelsAPI, videosAPI } from '../services/api';
 
@@ -138,6 +139,7 @@ const ErrorDescription = styled.p`
 
 function ChannelPage() {
   const { id } = useParams();
+  const { t } = useSettings();
   const [channel, setChannel] = useState(null);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -272,7 +274,7 @@ function ChannelPage() {
           <ChannelDetails>
             <ChannelName>{channel.name}</ChannelName>
             <ChannelStats>
-              {formatNumber(channel.subscribers)} inscritos • {formatNumber(channel.totalViews)} visualizações
+              {formatNumber(channel.subscribers)} {t('subscribers')} • {formatNumber(channel.totalViews)} {t('views')}
             </ChannelStats>
             {channel.description && (
               <ChannelDescription>{channel.description}</ChannelDescription>

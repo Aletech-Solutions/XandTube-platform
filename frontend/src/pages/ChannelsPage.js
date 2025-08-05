@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaUsers, FaSearch, FaCheckCircle, FaEye, FaVideo } from 'react-icons/fa';
+import { useSettings } from '../contexts/SettingsContext';
 import api from '../services/api';
 import AppHeader from '../components/Header';
 import Sidebar from '../components/Sidebar';
@@ -232,7 +233,7 @@ const EmptyState = styled.div`
 `;
 
 function ChannelsPage() {
-  const navigate = useNavigate();
+  const { t } = useSettings();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -291,9 +292,9 @@ function ChannelsPage() {
           <PageHeader>
             <h1>
               <FaUsers />
-              Canais
+              {t('channels')}
             </h1>
-            <p>Descubra canais incríveis e suas melhores criações</p>
+            <p>{t('channelsDescription')}</p>
           </PageHeader>
 
           <SearchSection>
@@ -301,7 +302,7 @@ function ChannelsPage() {
               <FaSearch />
               <SearchInput
                 type="text"
-                placeholder="Buscar canais..."
+                placeholder={t('searchChannels')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -310,17 +311,17 @@ function ChannelsPage() {
 
           {loading ? (
             <LoadingState>
-              Carregando canais...
+              {t('loading')}
             </LoadingState>
           ) : filteredChannels.length === 0 ? (
             <EmptyState>
               <h3>
-                {searchTerm ? 'Nenhum canal encontrado' : 'Nenhum canal disponível'}
+                {searchTerm ? t('noChannelFound') : t('noChannelsAvailable')}
               </h3>
               <p>
                 {searchTerm 
-                  ? 'Tente ajustar sua busca ou explore outros termos.'
-                  : 'Ainda não há canais cadastrados no sistema.'
+                  ? t('searchTip')
+                  : t('noChannelsRegistered')
                 }
               </p>
             </EmptyState>
@@ -342,10 +343,10 @@ function ChannelsPage() {
                         <h3>
                           {channel.name}
                           {channel.verified && (
-                            <FaCheckCircle className="verified" title="Canal verificado" />
+                            <FaCheckCircle className="verified" title={t('verified')} />
                           )}
                         </h3>
-                        <p>{channel.description || 'Sem descrição'}</p>
+                        <p>{channel.description || t('noDescription')}</p>
                       </ChannelInfo>
                     </ChannelHeader>
                     
@@ -353,19 +354,19 @@ function ChannelsPage() {
                       <StatItem>
                         <div className="icon"><FaUsers /></div>
                         <div className="value">{formatNumber(channel.subscribers)}</div>
-                        <div className="label">Inscritos</div>
+                        <div className="label">{t('subscribers')}</div>
                       </StatItem>
                       
                       <StatItem>
                         <div className="icon"><FaVideo /></div>
                         <div className="value">{channel.videoCount || 0}</div>
-                        <div className="label">Vídeos</div>
+                        <div className="label">{t('videos')}</div>
                       </StatItem>
                       
                       <StatItem>
                         <div className="icon"><FaEye /></div>
                         <div className="value">{formatNumber(channel.totalViews)}</div>
-                        <div className="label">Visualizações</div>
+                        <div className="label">{t('views')}</div>
                       </StatItem>
                     </ChannelStats>
                   </ChannelContent>

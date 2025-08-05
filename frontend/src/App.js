@@ -6,6 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import MobileNavigation from './components/MobileNavigation';
+import { SettingsProvider } from './contexts/SettingsContext';
 import HomePage from './pages/HomePage';
 import VideoPage from './pages/VideoPage';
 import ChannelPage from './pages/ChannelPage';
@@ -19,6 +20,7 @@ import WatchPage from './pages/WatchPage';
 import ChannelsPage from './pages/ChannelsPage';
 import ChannelDetailsPage from './pages/ChannelDetailsPage';
 import ChannelManagePage from './pages/ChannelManagePage';
+import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import api from './services/api';
 
@@ -26,7 +28,7 @@ const AppContainer = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #181818;
+  background-color: var(--bg-secondary);
 `;
 
 const MainContent = styled.div`
@@ -38,7 +40,7 @@ const MainContent = styled.div`
 const ContentArea = styled.main`
   flex: 1;
   padding: 20px;
-  margin-left: ${props => props.sidebarOpen ? '240px' : '72px'}; /* Width of sidebar */
+  margin-left: ${props => props.$sidebarOpen ? '240px' : '72px'}; /* Width of sidebar */
   transition: margin-left 0.3s;
   
   @media (max-width: 768px) {
@@ -53,7 +55,7 @@ const LoadingContainer = styled.div`
   align-items: center;
   height: 100vh;
   font-size: 24px;
-  color: #aaa;
+  color: var(--text-muted);
 `;
 
 // Componente para rotas protegidas
@@ -125,53 +127,56 @@ function App() {
   }
 
   return (
-    <ErrorBoundary>
-      <AppContainer>
-        {!isAuthPage && <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} />}
-        
-        <Routes>
-          {/* Rotas públicas */}
-          <Route path="/login" element={
-            <PublicRoute>
-              <LoginPage />
-            </PublicRoute>
-          } />
-          <Route path="/register" element={
-            <PublicRoute>
-              <RegisterPage />
-            </PublicRoute>
-          } />
+    <SettingsProvider>
+      <ErrorBoundary>
+        <AppContainer>
+          {!isAuthPage && <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} />}
+          
+          <Routes>
+            {/* Rotas públicas */}
+            <Route path="/login" element={
+              <PublicRoute>
+                <LoginPage />
+              </PublicRoute>
+            } />
+            <Route path="/register" element={
+              <PublicRoute>
+                <RegisterPage />
+              </PublicRoute>
+            } />
 
-          {/* Rotas protegidas */}
-          <Route path="/*" element={
-            <ProtectedRoute>
-              <MainContent>
-                {!isAuthPage && <Sidebar isOpen={sidebarOpen} />}
-                <ContentArea sidebarOpen={sidebarOpen}>
-                  <Routes>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/watch/:id" element={<VideoPage />} />
-                    <Route path="/watch-download/:id" element={<WatchPage />} />
-                    <Route path="/channel/:id" element={<ChannelPage />} />
-                    <Route path="/channels" element={<ChannelsPage />} />
-                    <Route path="/channels/:id" element={<ChannelDetailsPage />} />
-                    <Route path="/channels/:channelId/manage" element={<ChannelManagePage />} />
-                    <Route path="/upload" element={<UploadPage />} />
-                    <Route path="/create-channel" element={<CreateChannelPage />} />
-                    <Route path="/download" element={<DownloadPage />} />
-                    <Route path="/historico" element={<HistoricoPage />} />
-                    <Route path="*" element={<NotFoundPage />} />
-                  </Routes>
-                </ContentArea>
-              </MainContent>
-            </ProtectedRoute>
-          } />
-        </Routes>
-        
-        {/* Mobile Navigation - appears only on mobile */}
-        {!isAuthPage && <MobileNavigation />}
-      </AppContainer>
-    </ErrorBoundary>
+            {/* Rotas protegidas */}
+            <Route path="/*" element={
+              <ProtectedRoute>
+                <MainContent>
+                  {!isAuthPage && <Sidebar isOpen={sidebarOpen} />}
+                  <ContentArea $sidebarOpen={sidebarOpen}>
+                    <Routes>
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/watch/:id" element={<VideoPage />} />
+                      <Route path="/watch-download/:id" element={<WatchPage />} />
+                      <Route path="/channel/:id" element={<ChannelPage />} />
+                      <Route path="/channels" element={<ChannelsPage />} />
+                      <Route path="/channels/:id" element={<ChannelDetailsPage />} />
+                      <Route path="/channels/:channelId/manage" element={<ChannelManagePage />} />
+                      <Route path="/upload" element={<UploadPage />} />
+                      <Route path="/create-channel" element={<CreateChannelPage />} />
+                      <Route path="/download" element={<DownloadPage />} />
+                      <Route path="/historico" element={<HistoricoPage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="*" element={<NotFoundPage />} />
+                    </Routes>
+                  </ContentArea>
+                </MainContent>
+              </ProtectedRoute>
+            } />
+          </Routes>
+          
+          {/* Mobile Navigation - appears only on mobile */}
+          {!isAuthPage && <MobileNavigation />}
+        </AppContainer>
+      </ErrorBoundary>
+    </SettingsProvider>
   );
 }
 

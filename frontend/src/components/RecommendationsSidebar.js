@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { useSettings } from '../contexts/SettingsContext';
 import { FaPlay, FaEye, FaClock, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
 import { recommendationsAPI } from '../services/api';
 
@@ -210,6 +211,7 @@ const ErrorContainer = styled.div`
 
 function RecommendationsSidebar({ currentVideoId }) {
   const navigate = useNavigate();
+  const { t } = useSettings();
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -235,7 +237,7 @@ function RecommendationsSidebar({ currentVideoId }) {
       setRecommendations(response.data.recommendations || []);
     } catch (err) {
       console.error('Erro ao carregar recomendações:', err);
-      setError('Erro ao carregar recomendações');
+              setError(t('loadingRecommendations'));
     } finally {
       setLoading(false);
     }
@@ -278,11 +280,11 @@ function RecommendationsSidebar({ currentVideoId }) {
     return (
       <SidebarContainer>
         <SidebarHeader>
-          <h3>Recomendações</h3>
+          <h3>{t('recommendations')}</h3>
         </SidebarHeader>
         <LoadingContainer>
           <FaSpinner />
-          <p>Carregando recomendações...</p>
+          <p>{t('loadingRecommendations')}</p>
         </LoadingContainer>
       </SidebarContainer>
     );
@@ -292,7 +294,7 @@ function RecommendationsSidebar({ currentVideoId }) {
     return (
       <SidebarContainer>
         <SidebarHeader>
-          <h3>Recomendações</h3>
+          <h3>{t('recommendations')}</h3>
         </SidebarHeader>
         <ErrorContainer>
           <FaExclamationTriangle />
@@ -307,7 +309,7 @@ function RecommendationsSidebar({ currentVideoId }) {
       <SidebarHeader>
         <h3>
           <FaPlay style={{ fontSize: '12px' }} />
-          {currentVideoId ? 'Recomendações' : 'Vídeos Populares'}
+          {currentVideoId ? t('recommendations') : t('popularVideos')}
         </h3>
       </SidebarHeader>
       

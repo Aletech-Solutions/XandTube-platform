@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
+import { useSettings } from '../contexts/SettingsContext';
 import { 
   FaPlay, 
   FaPause, 
@@ -520,6 +521,7 @@ const CenterPlayButton = styled.button`
 `;
 
 const VideoPlayer = ({ video }) => {
+  const { t } = useSettings();
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -735,7 +737,7 @@ const VideoPlayer = ({ video }) => {
         <VideoTitle>{video.title}</VideoTitle>
         <VideoMeta>
           <ChannelName>{video.channelName}</ChannelName>
-          <span>{video.viewCount?.toLocaleString()} visualizações</span>
+          <span>{video.viewCount?.toLocaleString()} {t('views')}</span>
           <span>{video.resolution}</span>
           <span>{video.fileSizeFormatted}</span>
         </VideoMeta>

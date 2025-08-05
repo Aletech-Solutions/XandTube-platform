@@ -37,7 +37,7 @@ const MobileNavItem = styled(Link)`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: ${props => props.active ? '#fff' : '#aaa'};
+  color: ${props => props.$active ? '#fff' : '#aaa'};
   text-decoration: none;
   font-size: 10px;
   font-weight: 500;
@@ -53,7 +53,7 @@ const MobileNavItem = styled(Link)`
     margin-bottom: 4px;
   }
   
-  ${props => props.active && `
+  ${props => props.$active && `
     color: #ff0000;
     
     &::before {
@@ -84,7 +84,7 @@ function MobileNavigation() {
       <MobileNavGrid>
         <MobileNavItem 
           to="/" 
-          active={isActive('/')}
+          $active={isActive('/')}
         >
           <FaHome />
           Início
@@ -92,7 +92,7 @@ function MobileNavigation() {
         
         <MobileNavItem 
           to="/download" 
-          active={isActive('/download')}
+          $active={isActive('/download')}
         >
           <FaYoutube />
           Baixar
@@ -100,7 +100,7 @@ function MobileNavigation() {
         
         <MobileNavItem 
           to="/historico" 
-          active={isActive('/historico')}
+          $active={isActive('/historico')}
         >
           <FaHistory />
           Histórico
@@ -108,7 +108,7 @@ function MobileNavigation() {
         
         <MobileNavItem 
           to="/channels" 
-          active={isActive('/channels')}
+          $active={isActive('/channels')}
         >
           <FaUsers />
           Canais

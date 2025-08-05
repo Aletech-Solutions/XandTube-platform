@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { useSettings } from '../contexts/SettingsContext';
 import { 
   FaCheckCircle, FaUsers, FaEye, FaVideo, FaPlay, 
   FaCalendarAlt, FaClock, FaBell, FaBellSlash, FaCog 
@@ -370,6 +371,7 @@ const ErrorState = styled.div`
 function ChannelDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useSettings();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [channel, setChannel] = useState(null);
   const [videos, setVideos] = useState([]);
@@ -517,7 +519,7 @@ function ChannelDetailsPage() {
                     <StatItem>
                       <div className="icon"><FaUsers /></div>
                       <div className="value">{formatNumber(channel.subscribers)}</div>
-                      <div className="label">Inscritos</div>
+                      <div className="label">{t('subscribers')}</div>
                     </StatItem>
                     
                     <StatItem>
@@ -529,7 +531,7 @@ function ChannelDetailsPage() {
                     <StatItem>
                       <div className="icon"><FaEye /></div>
                       <div className="value">{formatNumber(channel.totalViews)}</div>
-                      <div className="label">Visualizações</div>
+                      <div className="label">{t('views')}</div>
                     </StatItem>
                   </ChannelStats>
                   
@@ -585,7 +587,7 @@ function ChannelDetailsPage() {
                         <h3>{video.title}</h3>
                         <div className="meta">
                           <span>
-                            <FaEye /> {formatNumber(video.views)} visualizações
+                            <FaEye /> {formatNumber(video.views)} {t('views')}
                           </span>
                           <span>
                             <FaCalendarAlt /> {formatDate(video.createdAt)}

@@ -123,7 +123,7 @@ const PasswordStrength = styled.div`
 const StrengthBar = styled.div`
   flex: 1;
   height: 3px;
-  background: ${props => props.active ? props.color : '#e0e0e0'};
+  background: ${props => props.$active ? props.$color : '#e0e0e0'};
   border-radius: 3px;
   transition: background-color 0.3s;
 `;
@@ -384,10 +384,10 @@ function RegisterPage() {
           {formData.password && (
             <>
               <PasswordStrength>
-                <StrengthBar active={passwordStrength.level >= 0} color="#ff4444" />
-                <StrengthBar active={passwordStrength.level >= 1} color="#ffaa44" />
-                <StrengthBar active={passwordStrength.level >= 2} color="#ffff44" />
-                <StrengthBar active={passwordStrength.level >= 3} color="#44ff44" />
+                <StrengthBar $active={passwordStrength.level >= 0} $color="#ff4444" />
+                <StrengthBar $active={passwordStrength.level >= 1} $color="#ffaa44" />
+                <StrengthBar $active={passwordStrength.level >= 2} $color="#ffff44" />
+                <StrengthBar $active={passwordStrength.level >= 3} $color="#44ff44" />
               </PasswordStrength>
               
               <ValidationList isValid={passwordValidations.length}>

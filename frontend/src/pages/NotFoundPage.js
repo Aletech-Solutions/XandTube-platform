@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaHome, FaSearch, FaUpload } from 'react-icons/fa';
+import { useSettings } from '../contexts/SettingsContext';
 
 const NotFoundContainer = styled.div`
   display: flex;
@@ -153,52 +154,47 @@ const SuggestionLink = styled(Link)`
 `;
 
 function NotFoundPage() {
+  const { t } = useSettings();
+
   const suggestions = [
     {
       icon: <FaHome />,
-      text: 'Volte para a',
+      text: t('goBackHome'),
       link: '/',
-      linkText: 'página inicial',
-      suffix: 'e descubra vídeos em destaque'
     },
     {
       icon: <FaSearch />,
-      text: 'Use a',
+      text: t('useSearch'),
       link: '/?search=',
-      linkText: 'busca',
-      suffix: 'para encontrar vídeos específicos'
     },
     {
       icon: <FaUpload />,
-      text: 'Faça',
+      text: t('uploadAndShare'),
       link: '/upload',
-      linkText: 'upload de um vídeo',
-      suffix: 'e compartilhe seu conteúdo'
     }
   ];
 
   return (
     <NotFoundContainer>
       <ErrorCode>404</ErrorCode>
-      <ErrorTitle>Página não encontrada</ErrorTitle>
+      <ErrorTitle>{t('pageNotFound')}</ErrorTitle>
       <ErrorDescription>
-        Ops! A página que você está procurando não existe ou foi movida. 
-        Verifique se a URL está correta ou navegue para uma das opções abaixo.
+        {t('pageNotFoundDescription')}
       </ErrorDescription>
       
       <ActionButtons>
         <ActionButton to="/">
           <FaHome />
-          Ir para Início
+          {t('goToHome')}
         </ActionButton>
         <ActionButton to="/upload" className="secondary">
           <FaUpload />
-          Enviar Vídeo
+          {t('uploadVideo')}
         </ActionButton>
       </ActionButtons>
 
       <Suggestions>
-        <SuggestionsTitle>O que você pode fazer?</SuggestionsTitle>
+        <SuggestionsTitle>{t('whatCanYouDo')}</SuggestionsTitle>
         <SuggestionsList>
           {suggestions.map((suggestion, index) => (
             <SuggestionItem key={index}>
@@ -206,9 +202,9 @@ function NotFoundPage() {
                 {suggestion.icon}
               </SuggestionIcon>
               <SuggestionText>
-                {suggestion.text} <SuggestionLink to={suggestion.link}>
-                  {suggestion.linkText}
-                </SuggestionLink> {suggestion.suffix}
+                <SuggestionLink to={suggestion.link}>
+                  {suggestion.text}
+                </SuggestionLink>
               </SuggestionText>
             </SuggestionItem>
           ))}

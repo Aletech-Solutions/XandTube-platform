@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { useSettings } from '../contexts/SettingsContext';
 import VideoPlayer from '../components/VideoPlayer';
 import RecommendationsSidebar from '../components/RecommendationsSidebar';
 import { downloadsAPI } from '../services/api';
@@ -389,6 +390,7 @@ const Description = styled.div`
 const WatchPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useSettings();
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -464,7 +466,7 @@ const WatchPage = () => {
           <p>{error || 'O vídeo solicitado não foi encontrado ou foi removido.'}</p>
           <BackButton onClick={handleBack}>
             <FaArrowLeft />
-            Voltar
+                          {t('goBack')}
           </BackButton>
         </ErrorContainer>
       </WatchContainer>
@@ -476,7 +478,7 @@ const WatchPage = () => {
       <MainContent>
         <BackButton onClick={handleBack}>
           <FaArrowLeft />
-          Voltar
+                        {t('goBack')}
         </BackButton>
         
         <VideoSection>
@@ -488,10 +490,10 @@ const WatchPage = () => {
           
           <VideoInfo>
             <InfoItem>
-              <span>{video.viewCount?.toLocaleString() || 'N/A'} visualizações</span>
+              <span>{video.viewCount?.toLocaleString() || 'N/A'} {t('views')}</span>
             </InfoItem>
             <InfoItem>
-              <span>Baixado em {formatDate(video.downloadedAt)}</span>
+              <span>{t('downloadedOn')} {formatDate(video.downloadedAt)}</span>
             </InfoItem>
             <InfoItem>
               <span>{video.resolution || 'N/A'}</span>

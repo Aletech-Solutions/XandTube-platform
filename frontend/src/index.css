@@ -1,3 +1,21 @@
+/* CSS Variables para temas - valores padrão (modo escuro) */
+:root {
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #181818;
+  --bg-tertiary: #202020;
+  --bg-hover: #3d3d3d;
+  --bg-input: #121212;
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --text-muted: #aaaaaa;
+  --border-color: #303030;
+  --accent-color: #065fd4;
+  --accent-hover: #1976d2;
+  --error-color: #f44336;
+  --success-color: #4caf50;
+  --warning-color: #ff9800;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -10,10 +28,16 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
-  color: #ffffff;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   line-height: 1.6;
   letter-spacing: 0.3px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Tema claro */
+body.theme-light {
+  background: var(--bg-primary);
 }
 
 code {
@@ -26,19 +50,19 @@ code {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-secondary);
   border-radius: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #666, #999);
+  background: var(--border-color);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #888, #aaa);
+  background: var(--text-muted);
 }
 
 .container {
@@ -48,7 +72,7 @@ code {
 }
 
 .error-message {
-  background: linear-gradient(135deg, #f44336, #c62828);
+  background: var(--error-color);
   color: white;
   padding: 16px 20px;
   border-radius: 12px;
@@ -56,7 +80,7 @@ code {
   text-align: center;
   font-weight: 500;
   box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-color);
 }
 
 .loading {
@@ -64,7 +88,7 @@ code {
   justify-content: center;
   align-items: center;
   height: 200px;
-  color: #cccccc;
+  color: var(--text-secondary);
   font-size: 16px;
   font-weight: 500;
   letter-spacing: 0.5px;
@@ -89,7 +113,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   letter-spacing: 0.4px;
   line-height: 1.3;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 h1 { font-size: 2.5rem; }
@@ -101,7 +125,7 @@ h6 { font-size: 1rem; }
 
 p {
   line-height: 1.6;
-  color: #cccccc;
+  color: var(--text-secondary);
 }
 
 /* Botões globais aprimorados */
@@ -113,13 +137,13 @@ button {
 
 /* Links aprimorados */
 a {
-  color: #64b5f6;
+  color: var(--accent-color);
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 a:hover {
-  color: #90caf9;
+  color: var(--accent-hover);
   text-decoration: underline;
 }
 
