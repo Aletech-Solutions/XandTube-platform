@@ -536,6 +536,17 @@ const VideoPlayer = ({ video }) => {
   // Timer para esconder controles
   const hideControlsTimer = useRef(null);
 
+  // Função para construir URL absoluta
+  const getAbsoluteUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/')) {
+      const baseUrl = process.env.REACT_APP_API_URL || 'http://192.168.3.46:3001';
+      return `${baseUrl}${url}`;
+    }
+    return url;
+  };
+
   useEffect(() => {
     const videoElement = videoRef.current;
     const containerElement = containerRef.current;
@@ -559,6 +570,17 @@ const VideoPlayer = ({ video }) => {
       setShowCenterPlay(true);
     };
 
+    const handleError = (e) => {
+      console.error('Erro ao carregar vídeo:', e);
+      console.log('URL do vídeo:', getAbsoluteUrl(video.videoUrl));
+      setIsPlaying(false);
+      setShowCenterPlay(true);
+    };
+
+    const handleLoadStart = () => {
+      console.log('Iniciando carregamento do vídeo:', getAbsoluteUrl(video.videoUrl));
+    };
+
     // Detectar mudanças no estado de fullscreen
     const handleFullscreenChange = () => {
       const isCurrentlyFullscreen = !!(
@@ -574,6 +596,8 @@ const VideoPlayer = ({ video }) => {
     videoElement.addEventListener('timeupdate', handleTimeUpdate);
     videoElement.addEventListener('play', handlePlay);
     videoElement.addEventListener('pause', handlePause);
+    videoElement.addEventListener('error', handleError);
+    videoElement.addEventListener('loadstart', handleLoadStart);
     
     // Listeners para fullscreen
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -586,6 +610,8 @@ const VideoPlayer = ({ video }) => {
       videoElement.removeEventListener('timeupdate', handleTimeUpdate);
       videoElement.removeEventListener('play', handlePlay);
       videoElement.removeEventListener('pause', handlePause);
+      videoElement.removeEventListener('error', handleError);
+      videoElement.removeEventListener('loadstart', handleLoadStart);
       
       // Remover listeners de fullscreen
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
@@ -610,12 +636,28 @@ const VideoPlayer = ({ video }) => {
     };
   }, [isPlaying, showControls]);
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     const videoElement = videoRef.current;
-    if (isPlaying) {
-      videoElement.pause();
-    } else {
-      videoElement.play();
+    if (!videoElement) return;
+
+    try {
+      if (isPlaying) {
+        videoElement.pause();
+      } else {
+        await videoElement.play();
+      }
+    } catch (error) {
+      console.error('Erro ao reproduzir vídeo:', error);
+      console.log('URL do vídeo:', getAbsoluteUrl(video.videoUrl));
+      
+      // Se falhar, tenta recarregar o src
+      if (error.name === 'NotSupportedError') {
+        console.warn('Formato não suportado, tentando recarregar...');
+        const currentSrc = videoElement.src;
+        videoElement.src = '';
+        videoElement.src = currentSrc;
+        videoElement.load();
+      }
     }
   };
 
@@ -726,8 +768,8 @@ const VideoPlayer = ({ video }) => {
     >
       <Video
         ref={videoRef}
-        src={video.videoUrl}
-        poster={video.thumbnailUrl}
+        src={getAbsoluteUrl(video.videoUrl)}
+        poster={getAbsoluteUrl(video.thumbnailUrl)}
         preload="metadata"
         onClick={togglePlay}
       />
