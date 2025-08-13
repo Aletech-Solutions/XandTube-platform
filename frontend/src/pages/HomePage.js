@@ -269,12 +269,16 @@ function HomePage() {
     }
   }, [searchQuery, currentPage, downloadsPerPage]);
 
+  // Carrega downloads quando a página, busca ou limite mudam
   useEffect(() => {
     loadDownloads();
   }, [loadDownloads]);
 
+  // Reset para primeira página quando o termo de busca muda (apenas se não estiver na página 1)
   useEffect(() => {
-    setCurrentPage(1); // Reset para primeira página quando buscar
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
   }, [searchQuery]);
 
   const handlePageChange = (page) => {
@@ -351,15 +355,20 @@ function HomePage() {
           </DownloadsGrid>
 
           {/* Paginação */}
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-              showInfo={true}
-              showQuickJump={true}
-            />
-          )}
+          <div style={{ background: '#333', padding: '10px', margin: '20px 0', borderRadius: '5px' }}>
+            <div style={{ color: '#fff', fontSize: '12px', textAlign: 'center' }}>
+              Debug: totalPages={totalPages}, currentPage={currentPage}, downloads={downloads.length}
+            </div>
+          </div>
+          
+          {/* Sempre mostrar paginação para debug */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.max(totalPages, 2)} // Forçar pelo menos 2 páginas para debug
+            onPageChange={handlePageChange}
+            showInfo={true}
+            showQuickJump={true}
+          />
           
           {/* Debug info */}
           {process.env.NODE_ENV === 'development' && (
