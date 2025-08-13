@@ -10,10 +10,24 @@ class YtdlpService {
   constructor() {
     this.downloadsPath = path.join(__dirname, '..', '..', 'videos', 'downloads');
     this.metadataPath = path.join(__dirname, '..', '..', 'videos', 'metadata');
+    this.cookiesPath = path.join(__dirname, '..', 'cookies.txt');
     
     // Garante que os diretórios existem
     fs.ensureDirSync(this.downloadsPath);
     fs.ensureDirSync(this.metadataPath);
+    
+    // Verifica se arquivo de cookies existe
+    this.hasCookies = fs.existsSync(this.cookiesPath);
+    if (this.hasCookies) {
+      console.log('🍪 Arquivo de cookies encontrado, será usado para evitar banimentos');
+    } else {
+      console.log('⚠️ Arquivo de cookies não encontrado. Para evitar banimentos, crie um arquivo cookies.txt na pasta backend');
+    }
+  }
+
+  // Constrói argumentos de cookies para yt-dlp
+  getCookieArgs() {
+    return this.hasCookies ? `--cookies "${this.cookiesPath}"` : '';
   }
 
   // Busca informações do vídeo/playlist sem baixar usando comando direto
@@ -43,7 +57,14 @@ class YtdlpService {
     try {
       console.log('🚀 Usando comando direto yt-dlp para vídeo...');
       
-      const { stdout } = await execPromise(`yt-dlp --dump-json --no-warnings "${url}"`, {
+      const cookieArgs = this.getCookieArgs();
+      const command = `yt-dlp ${cookieArgs} --dump-json --no-warnings "${url}"`;
+      
+      if (this.hasCookies) {
+        console.log('🍪 Usando cookies para evitar banimentos');
+      }
+      
+      const { stdout } = await execPromise(command, {
         maxBuffer: 1024 * 1024 * 10 // 10MB buffer
       });
       
@@ -64,9 +85,15 @@ class YtdlpService {
     try {
       console.log('🚀 Usando comando otimizado para playlist...');
       
+      const cookieArgs = this.getCookieArgs();
+      if (this.hasCookies) {
+        console.log('🍪 Usando cookies para playlist');
+      }
+      
       // Primeiro, obtém informações básicas da playlist
+      const command = `yt-dlp ${cookieArgs} --dump-json --flat-playlist --no-warnings "${url}"`;
       const { stdout: playlistStdout } = await execPromise(
-        `yt-dlp --dump-json --flat-playlist --no-warnings "${url}"`, 
+        command, 
         { maxBuffer: 1024 * 1024 * 50 } // 50MB buffer para playlists grandes
       );
       
@@ -128,8 +155,9 @@ class YtdlpService {
       // Fallback: tenta método mais simples
       try {
         console.log('🔄 Tentando método alternativo para playlist...');
+        const fallbackCommand = `yt-dlp ${cookieArgs} --dump-json --no-warnings --max-downloads 5 "${url}"`;
         const { stdout } = await execPromise(
-          `yt-dlp --dump-json --no-warnings --max-downloads 5 "${url}"`,
+          fallbackCommand,
           { maxBuffer: 1024 * 1024 * 20 }
         );
         
@@ -259,7 +287,8 @@ class YtdlpService {
 
     // Constrói comando yt-dlp com seletor de qualidade otimizado
     const quality = this.buildQualitySelector(options.quality);
-    const command = `yt-dlp -f "${quality}" --no-playlist --write-info-json --write-thumbnail --merge-output-format mp4 -o "${outputPath}" "${url}"`;
+    const cookieArgs = this.getCookieArgs();
+    const command = `yt-dlp ${cookieArgs} -f "${quality}" --no-playlist --write-info-json --write-thumbnail --merge-output-format mp4 -o "${outputPath}" "${url}"`;
 
     console.log('📥 Iniciando download com comando:', command);
     console.log('📊 Qualidade solicitada:', options.quality || 'best');
@@ -494,7 +523,14 @@ class YtdlpService {
     try {
       console.log('🔍 Listando formatos disponíveis para:', url);
       
-      const { stdout } = await execPromise(`yt-dlp --list-formats --dump-json "${url}"`, {
+      const cookieArgs = this.getCookieArgs();
+      const command = `yt-dlp ${cookieArgs} --list-formats --dump-json "${url}"`;
+      
+      if (this.hasCookies) {
+        console.log('🍪 Usando cookies para listar formatos');
+      }
+      
+      const { stdout } = await execPromise(command, {
         maxBuffer: 1024 * 1024 * 10 // 10MB buffer
       });
       
@@ -547,8 +583,15 @@ class YtdlpService {
     try {
       console.log('🔍 Obtendo informações do canal:', channelUrl);
       
+      const cookieArgs = this.getCookieArgs();
+      const command = `yt-dlp ${cookieArgs} --dump-json --flat-playlist --playlist-end 1 --no-warnings "${channelUrl}"`;
+      
+      if (this.hasCookies) {
+        console.log('🍪 Usando cookies para obter informações do canal');
+      }
+      
       const { stdout } = await execPromise(
-        `yt-dlp --dump-json --flat-playlist --playlist-end 1 --no-warnings "${channelUrl}"`, 
+        command, 
         { maxBuffer: 1024 * 1024 * 10 } // 10MB buffer
       );
       
@@ -576,8 +619,9 @@ class YtdlpService {
 
       if (!channelInfo) {
         // Fallback: try to get channel info using different approach
+        const fallbackCommand = `yt-dlp ${cookieArgs} --dump-json --no-warnings --playlist-end 1 "${channelUrl}"`;
         const { stdout: fallbackStdout } = await execPromise(
-          `yt-dlp --dump-json --no-warnings --playlist-end 1 "${channelUrl}"`,
+          fallbackCommand,
           { maxBuffer: 1024 * 1024 * 10 }
         );
         
@@ -616,8 +660,15 @@ class YtdlpService {
       const fromDateFormatted = formatDate(fromDate);
       const toDateFormatted = formatDate(toDate);
 
+      const cookieArgs = this.getCookieArgs();
+      const command = `yt-dlp ${cookieArgs} --dump-json --flat-playlist --dateafter ${fromDateFormatted} --datebefore ${toDateFormatted} --no-warnings "${channelUrl}"`;
+      
+      if (this.hasCookies) {
+        console.log('🍪 Usando cookies para buscar vídeos do canal');
+      }
+      
       const { stdout } = await execPromise(
-        `yt-dlp --dump-json --flat-playlist --dateafter ${fromDateFormatted} --datebefore ${toDateFormatted} --no-warnings "${channelUrl}"`,
+        command,
         { maxBuffer: 1024 * 1024 * 50 } // 50MB buffer for large channels
       );
       

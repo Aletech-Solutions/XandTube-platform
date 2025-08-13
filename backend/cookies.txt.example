@@ -1,0 +1,17 @@
+# Netscape HTTP Cookie File
+# Exemplo de arquivo de cookies para YouTube/Google
+# Para obter seus cookies reais:
+# 1. Instale a extensão "Get cookies.txt LOCALLY" no seu navegador
+# 2. Vá para youtube.com
+# 3. Faça login na sua conta
+# 4. Clique na extensão e salve os cookies como cookies.txt
+# 5. Renomeie este arquivo para cookies.txt
+
+# Exemplo de formato (NÃO USE ESTES VALORES REAIS):
+# .youtube.com	TRUE	/	FALSE	1234567890	session_token	exemplo_token_aqui
+# .google.com	TRUE	/	FALSE	1234567890	__Secure-3PSID	exemplo_sid_aqui
+
+# IMPORTANTE: 
+# - Mantenha este arquivo privado e seguro
+# - Nunca compartilhe seus cookies reais
+# - Os cookies podem expirar e precisar ser atualizados
