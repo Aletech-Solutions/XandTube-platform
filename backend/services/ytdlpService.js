@@ -30,6 +30,102 @@ class YtdlpService {
     return this.hasCookies ? `--cookies "${this.cookiesPath}"` : '';
   }
 
+  // Constrói argumentos anti-detecção de bot
+  getAntiDetectionArgs() {
+    const args = [
+      '--user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"',
+      '--add-header "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"',
+      '--add-header "Accept-Language:en-US,en;q=0.5"',
+      '--add-header "Accept-Encoding:gzip, deflate"',
+      '--add-header "DNT:1"',
+      '--add-header "Connection:keep-alive"',
+      '--add-header "Upgrade-Insecure-Requests:1"',
+      '--sleep-interval 1',
+      '--max-sleep-interval 3'
+    ];
+    
+    return args.join(' ');
+  }
+
+  // Constrói comando completo com todas as proteções
+  buildProtectedCommand(baseCommand, url) {
+    const cookieArgs = this.getCookieArgs();
+    const antiDetectionArgs = this.getAntiDetectionArgs();
+    
+    // Primeira tentativa: com cookies e headers
+    if (this.hasCookies) {
+      return `${baseCommand} ${cookieArgs} ${antiDetectionArgs} "${url}"`;
+    }
+    
+    // Segunda tentativa: usar cookies do navegador (Chrome como padrão)
+    const browserCookieArgs = '--cookies-from-browser chrome';
+    return `${baseCommand} ${browserCookieArgs} ${antiDetectionArgs} "${url}"`;
+  }
+
+  // Método robusto para executar comandos com múltiplos fallbacks
+  async executeWithFallbacks(baseCommand, url, options = {}) {
+    const attempts = [
+      {
+        name: 'Cookies file + Anti-detection',
+        command: () => this.buildProtectedCommand(baseCommand, url),
+        condition: () => this.hasCookies
+      },
+      {
+        name: 'Chrome browser cookies + Anti-detection',
+        command: () => `${baseCommand} --cookies-from-browser chrome ${this.getAntiDetectionArgs()} "${url}"`,
+        condition: () => true
+      },
+      {
+        name: 'Firefox browser cookies + Anti-detection',
+        command: () => `${baseCommand} --cookies-from-browser firefox ${this.getAntiDetectionArgs()} "${url}"`,
+        condition: () => true
+      },
+      {
+        name: 'Edge browser cookies + Anti-detection',
+        command: () => `${baseCommand} --cookies-from-browser edge ${this.getAntiDetectionArgs()} "${url}"`,
+        condition: () => true
+      },
+      {
+        name: 'Only anti-detection headers',
+        command: () => `${baseCommand} ${this.getAntiDetectionArgs()} "${url}"`,
+        condition: () => true
+      },
+      {
+        name: 'Basic command (last resort)',
+        command: () => `${baseCommand} "${url}"`,
+        condition: () => true
+      }
+    ];
+
+    for (const attempt of attempts) {
+      if (!attempt.condition()) continue;
+      
+      try {
+        console.log(`🔄 Tentativa: ${attempt.name}`);
+        const command = attempt.command();
+        const result = await execPromise(command, {
+          maxBuffer: options.maxBuffer || 1024 * 1024 * 10,
+          timeout: options.timeout || 60000
+        });
+        
+        if (result.stdout && result.stdout.trim()) {
+          console.log(`✅ Sucesso com: ${attempt.name}`);
+          return result;
+        }
+      } catch (error) {
+        console.log(`❌ ${attempt.name} falhou: ${error.message.substring(0, 100)}...`);
+        
+        // Se for erro de detecção de bot, adicionar delay antes da próxima tentativa
+        if (error.message.includes('bot') || error.message.includes('Sign in')) {
+          console.log('🤖 Detecção de bot detectada, aguardando 5 segundos...');
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+      }
+    }
+    
+    throw new Error('Todas as tentativas falharam. O YouTube pode estar bloqueando temporariamente.');
+  }
+
   // Busca informações do vídeo/playlist sem baixar usando comando direto
   async getInfo(url) {
     console.log('🔍 Iniciando busca de informações para:', url);
@@ -55,24 +151,14 @@ class YtdlpService {
   // Método específico para obter informações de vídeo único
   async getVideoInfo(url) {
     try {
-      console.log('🚀 Usando comando direto yt-dlp para vídeo...');
+      console.log('🚀 Obtendo informações do vídeo com métodos robustos...');
       
-      const cookieArgs = this.getCookieArgs();
-      const command = `yt-dlp ${cookieArgs} --dump-json --no-warnings "${url}"`;
-      
-      if (this.hasCookies) {
-        console.log('🍪 Usando cookies para evitar banimentos');
-      }
-      
-      const { stdout } = await execPromise(command, {
-        maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+      const baseCommand = 'yt-dlp --dump-json --no-warnings';
+      const result = await this.executeWithFallbacks(baseCommand, url, {
+        maxBuffer: 1024 * 1024 * 10
       });
       
-      if (!stdout || stdout.trim() === '') {
-        throw new Error('YT-DLP retornou saída vazia');
-      }
-
-      const info = JSON.parse(stdout.trim());
+      const info = JSON.parse(result.stdout.trim());
       console.log('✅ Informações do vídeo obtidas com sucesso!');
       return info;
     } catch (error) {
@@ -285,10 +371,10 @@ class YtdlpService {
     const filename = `${metadata.youtubeId}_${Date.now()}.mp4`;
     const outputPath = path.join(this.downloadsPath, filename);
 
-    // Constrói comando yt-dlp com seletor de qualidade otimizado
+    // Constrói comando yt-dlp com seletor de qualidade otimizado e proteções
     const quality = this.buildQualitySelector(options.quality);
-    const cookieArgs = this.getCookieArgs();
-    const command = `yt-dlp ${cookieArgs} -f "${quality}" --no-playlist --write-info-json --write-thumbnail --merge-output-format mp4 -o "${outputPath}" "${url}"`;
+    const baseCommand = `yt-dlp -f "${quality}" --no-playlist --write-info-json --write-thumbnail --merge-output-format mp4 -o "${outputPath}"`;
+    const command = this.buildProtectedCommand(baseCommand, url);
 
     console.log('📥 Iniciando download com comando:', command);
     console.log('📊 Qualidade solicitada:', options.quality || 'best');
