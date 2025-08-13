@@ -253,7 +253,8 @@ function HomePage() {
         totalDownloads: response.data.downloads?.length || 0,
         total: response.data.total,
         totalPages: response.data.totalPages,
-        currentPage: response.data.page
+        currentPage: response.data.page,
+        fullResponse: response.data
       });
 
       // A API retorna a estrutura diretamente, não dentro de 'data'
@@ -269,6 +270,8 @@ function HomePage() {
     }
   }, [searchQuery, currentPage, downloadsPerPage]);
 
+  console.log(`🔍 Estado atual: currentPage=${currentPage}, totalPages=${totalPages}, searchQuery="${searchQuery}"`); 
+
   // Carrega downloads quando a página, busca ou limite mudam
   useEffect(() => {
     loadDownloads();
@@ -276,7 +279,9 @@ function HomePage() {
 
   // Reset para primeira página quando o termo de busca muda (apenas se não estiver na página 1)
   useEffect(() => {
+    console.log(`🔄 searchQuery mudou para: "${searchQuery}", currentPage atual: ${currentPage}`);
     if (currentPage !== 1) {
+      console.log(`🔄 Resetando currentPage de ${currentPage} para 1`);
       setCurrentPage(1);
     }
   }, [searchQuery]);
@@ -361,10 +366,10 @@ function HomePage() {
             </div>
           </div>
           
-          {/* Sempre mostrar paginação para debug */}
+          {/* Paginação normal */}
           <Pagination
             currentPage={currentPage}
-            totalPages={Math.max(totalPages, 2)} // Forçar pelo menos 2 páginas para debug
+            totalPages={totalPages}
             onPageChange={handlePageChange}
             showInfo={true}
             showQuickJump={true}
