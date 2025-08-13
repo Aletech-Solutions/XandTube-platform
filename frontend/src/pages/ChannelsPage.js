@@ -229,41 +229,24 @@ function ChannelsPage() {
   const [totalChannels, setTotalChannels] = useState(0);
   const channelsPerPage = 20;
 
-  const loadChannels = useCallback(async () => {
+
+
+  const searchChannels = useCallback(async () => {
     try {
       setLoading(true);
+      console.log(`🔍 Buscando canais - Página: ${currentPage}, Termo: "${searchTerm}"`);
+      
       const response = await api.get('/channels', {
         params: {
+          search: searchTerm.trim() || undefined,
           page: currentPage,
           limit: channelsPerPage
         }
       });
       
-      setFilteredChannels(response.data.channels || []);
-      setTotalPages(response.data.pagination?.totalPages || 1);
-      setTotalChannels(response.data.pagination?.total || 0);
-    } catch (error) {
-      console.error('Erro ao carregar canais:', error);
-      setFilteredChannels([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, channelsPerPage]);
-
-  const searchChannels = useCallback(async () => {
-    if (!searchTerm.trim()) {
-      loadChannels();
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await api.get('/channels', {
-        params: {
-          search: searchTerm,
-          page: currentPage,
-          limit: channelsPerPage
-        }
+      console.log(`📊 Resposta da API:`, {
+        totalCanais: response.data.channels?.length || 0,
+        paginacao: response.data.pagination
       });
       
       setFilteredChannels(response.data.channels || []);
@@ -275,22 +258,22 @@ function ChannelsPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, currentPage, channelsPerPage, loadChannels]);
+  }, [searchTerm, currentPage, channelsPerPage]);
 
+  // Carrega canais quando a página ou termo de busca mudam
   useEffect(() => {
-    loadChannels();
-  }, [loadChannels]);
+    searchChannels();
+  }, [searchChannels]);
 
+  // Reset para primeira página quando o termo de busca muda
   useEffect(() => {
-    setCurrentPage(1); // Reset para primeira página quando buscar
-    if (searchTerm) {
-      searchChannels();
-    } else {
-      loadChannels();
+    if (currentPage !== 1) {
+      setCurrentPage(1);
     }
-  }, [searchTerm, searchChannels, loadChannels]);
+  }, [searchTerm]);
 
   const handlePageChange = (page) => {
+    console.log(`📄 Mudando para página ${page}`);
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
