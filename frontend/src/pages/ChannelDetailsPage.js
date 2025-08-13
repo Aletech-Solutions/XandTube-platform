@@ -9,6 +9,8 @@ import {
 import api from '../services/api';
 import AppHeader from '../components/Header';
 import Sidebar from '../components/Sidebar';
+import Avatar from '../components/Avatar';
+import ChannelBanner from '../components/ChannelBanner';
 
 const PageContainer = styled.div`
   display: flex;
@@ -28,9 +30,16 @@ const MainContent = styled.main`
 `;
 
 const ChannelHeader = styled.div`
-  padding: 30px;
   background: #202020;
   border-bottom: 1px solid #333;
+`;
+
+const BannerSection = styled.div`
+  margin-bottom: 20px;
+`;
+
+const ChannelInfoSection = styled.div`
+  padding: 30px;
   
   @media (max-width: 768px) {
     padding: 20px;
@@ -50,30 +59,10 @@ const ChannelInfo = styled.div`
   }
 `;
 
-const ChannelAvatar = styled.div`
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: #555;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 48px;
-  font-weight: bold;
-  color: #fff;
-  overflow: hidden;
-  border: 4px solid #fff;
-  
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  
+const ChannelAvatarContainer = styled.div`
   @media (max-width: 768px) {
-    width: 80px;
-    height: 80px;
-    font-size: 32px;
+    display: flex;
+    justify-content: center;
   }
 `;
 
@@ -447,10 +436,7 @@ function ChannelDetailsPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getInitials = (name) => {
-    if (!name) return '??';
-    return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
-  };
+
 
   const handleVideoClick = (video) => {
     navigate(`/watch-download/${video.id}`);
@@ -494,14 +480,26 @@ function ChannelDetailsPage() {
         {channel && (
           <>
             <ChannelHeader>
-              <ChannelInfo>
-                <ChannelAvatar>
-                  {channel.avatar ? (
-                    <img src={channel.avatar} alt={channel.name} />
-                  ) : (
-                    getInitials(channel.name)
-                  )}
-                </ChannelAvatar>
+              <BannerSection>
+                <ChannelBanner
+                  src={channel.banner}
+                  channelName={channel.name}
+                  height={200}
+                />
+              </BannerSection>
+              
+              <ChannelInfoSection>
+                <ChannelInfo>
+                  <ChannelAvatarContainer>
+                    <Avatar
+                      src={channel.avatar}
+                      name={channel.name}
+                      size={120}
+                      border={true}
+                      borderWidth={4}
+                      borderColor="#fff"
+                    />
+                  </ChannelAvatarContainer>
                 
                 <ChannelDetails>
                   <h1>
@@ -552,7 +550,8 @@ function ChannelDetailsPage() {
                     </ManageButton>
                   </ButtonGroup>
                 </ChannelDetails>
-              </ChannelInfo>
+                </ChannelInfo>
+              </ChannelInfoSection>
             </ChannelHeader>
             
             <ContentSection>

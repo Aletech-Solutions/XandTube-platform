@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useSettings } from '../contexts/SettingsContext';
+import Avatar from './Avatar';
 
 const CardContainer = styled.div`
   width: 100%;
@@ -47,11 +48,7 @@ const VideoInfo = styled.div`
   gap: 12px;
 `;
 
-const ChannelAvatar = styled.img`
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: #333;
+const ChannelAvatarContainer = styled.div`
   flex-shrink: 0;
 `;
 
@@ -148,15 +145,16 @@ function VideoCard({ video }) {
       </StyledLink>
       
       <VideoInfo>
-        <StyledLink to={`/channel/${video.channelId}`}>
-          <ChannelAvatar 
-            src={`/api/channels/${video.channelId}/avatar`}
-            alt={video.channelName}
-            onError={(e) => {
-              e.target.src = 'https://via.placeholder.com/36x36/333333/ffffff?text=CH';
-            }}
-          />
-        </StyledLink>
+        <ChannelAvatarContainer>
+          <StyledLink to={`/channel/${video.channelId}`}>
+            <Avatar
+              src={`/api/channels/${video.channelId}/avatar`}
+              name={video.channelName}
+              size={36}
+              hover={true}
+            />
+          </StyledLink>
+        </ChannelAvatarContainer>
         
         <VideoDetails>
           <StyledLink to={`/watch-download/${video.id}`}>

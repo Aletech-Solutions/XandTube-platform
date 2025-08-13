@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaPlay, FaDownload, FaTrash, FaClock, FaFileVideo, FaYoutube } from 'react-icons/fa';
 import { downloadsAPI } from '../services/api';
+import { createGradientStyle, getInitials } from '../utils/avatarUtils';
 
 const DownloadCard = ({ download }) => {
   const navigate = useNavigate();
+  const [imageError, setImageError] = useState(false);
 
   // Formatar duração
   const formatDuration = (seconds) => {
@@ -53,16 +55,30 @@ const DownloadCard = ({ download }) => {
     navigate(`/watch-download/${download.id}`);
   };
 
+  // Função para lidar com erro de imagem
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  // Gera estilo de gradiente baseado no título
+  const gradientStyle = createGradientStyle(download.title);
+  const titleInitials = getInitials(download.title);
+
   return (
     <CardContainer>
-      <ThumbnailContainer onClick={handleImageClick}>
-        <Thumbnail 
-          src={downloadsAPI.thumbnail(download.id)}
-          alt={download.title}
-          onError={(e) => {
-            e.target.style.display = 'none';
-          }}
-        />
+      <ThumbnailContainer onClick={handleImageClick} style={imageError ? gradientStyle : {}}>
+        {!imageError ? (
+          <Thumbnail 
+            src={downloadsAPI.thumbnail(download.id)}
+            alt={download.title}
+            onError={handleImageError}
+          />
+        ) : (
+          <FallbackContent>
+            <FallbackInitials>{titleInitials}</FallbackInitials>
+            <FallbackTitle>{download.title}</FallbackTitle>
+          </FallbackContent>
+        )}
         <DurationBadge>{download.duration || '00:00'}</DurationBadge>
         <PlayOverlay>
           <FaPlay />
@@ -202,6 +218,54 @@ const Thumbnail = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
+`;
+
+const FallbackContent = styled.div`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  color: white;
+`;
+
+const FallbackInitials = styled.div`
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  
+  @media (max-width: 768px) {
+    font-size: 28px;
+  }
+  
+  @media (min-width: 1920px) {
+    font-size: 40px;
+  }
+`;
+
+const FallbackTitle = styled.div`
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  opacity: 0.9;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  
+  @media (max-width: 768px) {
+    font-size: 11px;
+    -webkit-line-clamp: 2;
+  }
+  
+  @media (min-width: 1920px) {
+    font-size: 14px;
+  }
 `;
 
 const DurationBadge = styled.div`
