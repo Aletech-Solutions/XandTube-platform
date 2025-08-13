@@ -234,7 +234,7 @@ function HomePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalDownloads, setTotalDownloads] = useState(0);
-  const downloadsPerPage = 20;
+  const downloadsPerPage = 10;
 
   const searchQuery = searchParams.get('search');
 
@@ -243,13 +243,23 @@ function HomePage() {
       setLoading(true);
       setError(null);
 
+      console.log(`🏠 Carregando downloads - Página: ${currentPage}, Limite: ${downloadsPerPage}, Busca: "${searchQuery}"`);
+
       const response = searchQuery 
         ? await downloadsAPI.search(searchQuery, currentPage, downloadsPerPage)
         : await downloadsAPI.list(currentPage, downloadsPerPage);
 
+      console.log(`📊 Resposta da API downloads:`, {
+        totalDownloads: response.data.downloads?.length || 0,
+        total: response.data.total,
+        totalPages: response.data.totalPages,
+        currentPage: response.data.page
+      });
+
+      // A API retorna a estrutura diretamente, não dentro de 'data'
       setDownloads(response.data.downloads || []);
-      setTotalPages(response.data.pagination?.totalPages || 1);
-      setTotalDownloads(response.data.pagination?.total || 0);
+      setTotalPages(response.data.totalPages || 1);
+      setTotalDownloads(response.data.total || 0);
     } catch (err) {
       console.error('Erro ao carregar downloads:', err);
       setError('Erro ao carregar downloads. Verifique se há vídeos baixados.');
@@ -268,6 +278,7 @@ function HomePage() {
   }, [searchQuery]);
 
   const handlePageChange = (page) => {
+    console.log(`🏠 Mudando para página ${page}`);
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -348,6 +359,13 @@ function HomePage() {
               showInfo={true}
               showQuickJump={true}
             />
+          )}
+          
+          {/* Debug info */}
+          {process.env.NODE_ENV === 'development' && (
+            <div style={{ color: '#aaa', padding: '20px', textAlign: 'center', fontSize: '12px' }}>
+              Debug: Página {currentPage} de {totalPages} | Total: {totalDownloads} downloads
+            </div>
           )}
         </>
       )}

@@ -128,9 +128,17 @@ export const handleMissingData = {
   // Formatação segura de datas
   formatDate: (dateString) => {
     try {
+      if (!dateString) return 'Data não disponível';
+      
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        return 'Data desconhecida';
+        return 'Data inválida';
+      }
+      
+      // Verifica se é uma data muito antiga (provavelmente timestamp 0 ou erro)
+      const minValidDate = new Date('1990-01-01');
+      if (date < minValidDate) {
+        return 'Data não disponível';
       }
       
       const now = new Date();

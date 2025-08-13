@@ -108,7 +108,21 @@ function VideoCard({ video }) {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'Data não disponível';
+    
     const date = new Date(dateString);
+    
+    // Verifica se a data é válida
+    if (isNaN(date.getTime())) {
+      return 'Data inválida';
+    }
+    
+    // Verifica se é uma data muito antiga (provavelmente timestamp 0 ou erro)
+    const minValidDate = new Date('1990-01-01');
+    if (date < minValidDate) {
+      return 'Data não disponível';
+    }
+    
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));

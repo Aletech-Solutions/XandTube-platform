@@ -472,8 +472,21 @@ function ChannelDetailsPage() {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return '';
+    if (!dateString) return 'Data não disponível';
+    
     const date = new Date(dateString);
+    
+    // Verifica se a data é válida
+    if (isNaN(date.getTime())) {
+      return 'Data inválida';
+    }
+    
+    // Verifica se é uma data muito antiga (provavelmente timestamp 0 ou erro)
+    const minValidDate = new Date('1990-01-01');
+    if (date < minValidDate) {
+      return 'Data não disponível';
+    }
+    
     return date.toLocaleDateString('pt-BR');
   };
 
