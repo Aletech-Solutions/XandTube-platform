@@ -116,7 +116,7 @@ const extractChannelsFromVideos = () => {
 // GET /api/channels - Listar todos os canais
 router.get('/', (req, res) => {
   try {
-    const { search, limit = 20, offset = 0 } = req.query;
+    const { search, limit = 20, page = 1 } = req.query;
     
     let channels = extractChannelsFromVideos();
     let filteredChannels = [...channels];
@@ -134,14 +134,22 @@ router.get('/', (req, res) => {
     filteredChannels = filteredChannels.map(({ videos, ...channel }) => channel);
     
     // Paginação
-    const start = parseInt(offset);
-    const end = start + parseInt(limit);
-    const paginatedChannels = filteredChannels.slice(start, end);
+    const currentPage = parseInt(page);
+    const pageSize = parseInt(limit);
+    const offset = (currentPage - 1) * pageSize;
+    const paginatedChannels = filteredChannels.slice(offset, offset + pageSize);
+    const totalPages = Math.ceil(filteredChannels.length / pageSize);
     
     res.json({
       channels: paginatedChannels,
-      total: filteredChannels.length,
-      hasMore: end < filteredChannels.length
+      pagination: {
+        total: filteredChannels.length,
+        totalPages: totalPages,
+        currentPage: currentPage,
+        limit: pageSize,
+        hasNext: currentPage < totalPages,
+        hasPrev: currentPage > 1
+      }
     });
   } catch (error) {
     console.error('Erro ao buscar canais:', error);
@@ -232,8 +240,10 @@ router.put('/:id/unsubscribe', (req, res) => {
 // GET /api/channels/:id/videos - Obter vídeos do canal
 router.get('/:id/videos', (req, res) => {
   try {
-    const { limit = 20, offset = 0 } = req.query;
+    const { limit = 20, page = 1 } = req.query;
     const channelId = req.params.id;
+    
+    console.log(`🔍 DEBUG: Buscando vídeos do canal ${channelId}, página ${page}, limite ${limit}`);
     
     const channels = extractChannelsFromVideos();
     const channel = channels.find(c => c.id === channelId);
@@ -245,10 +255,22 @@ router.get('/:id/videos', (req, res) => {
       });
     }
     
+    // Ordenar vídeos por data de upload (mais recentes primeiro)
+    const sortedVideos = [...channel.videos].sort((a, b) => 
+      new Date(b.createdAt) - new Date(a.createdAt)
+    );
+    
+    console.log(`📊 DEBUG: Total de vídeos ordenados: ${sortedVideos.length}`);
+    
     // Paginação dos vídeos
-    const start = parseInt(offset);
-    const end = start + parseInt(limit);
-    const paginatedVideos = channel.videos.slice(start, end);
+    const currentPage = parseInt(page);
+    const pageSize = parseInt(limit);
+    const offset = (currentPage - 1) * pageSize;
+    const paginatedVideos = sortedVideos.slice(offset, offset + pageSize);
+    const totalPages = Math.ceil(sortedVideos.length / pageSize);
+    
+    console.log(`📄 DEBUG: Página ${currentPage}, offset ${offset}, pegando vídeos ${offset} a ${offset + pageSize - 1}`);
+    console.log(`🎥 DEBUG: Vídeos retornados: ${paginatedVideos.map(v => v.id).join(', ')}`);
     
     res.json({
       channel: {
@@ -261,8 +283,16 @@ router.get('/:id/videos', (req, res) => {
         verified: channel.verified
       },
       videos: paginatedVideos,
-      total: channel.videos.length,
-      hasMore: end < channel.videos.length
+      total: sortedVideos.length, // Compatibilidade com estrutura antiga
+      hasMore: currentPage < totalPages, // Compatibilidade com estrutura antiga
+      pagination: {
+        total: sortedVideos.length,
+        totalPages: totalPages,
+        currentPage: currentPage,
+        limit: pageSize,
+        hasNext: currentPage < totalPages,
+        hasPrev: currentPage > 1
+      }
     });
   } catch (error) {
     console.error('Erro ao buscar vídeos do canal:', error);
