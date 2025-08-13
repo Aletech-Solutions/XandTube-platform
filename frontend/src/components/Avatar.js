@@ -99,11 +99,7 @@ const Avatar = ({
         />
       )}
       
-      {showFallback && (
-        <div className="initials">
-          {initials}
-        </div>
-      )}
+
     </AvatarContainer>
   );
 };

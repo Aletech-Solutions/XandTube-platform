@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaUsers, FaSearch, FaCheckCircle, FaEye, FaVideo } from 'react-icons/fa';
@@ -6,6 +6,8 @@ import { useSettings } from '../contexts/SettingsContext';
 import api from '../services/api';
 import AppHeader from '../components/Header';
 import Sidebar from '../components/Sidebar';
+import Avatar from '../components/Avatar';
+import Pagination from '../components/Pagination';
 
 const PageContainer = styled.div`
   display: flex;
@@ -132,24 +134,8 @@ const ChannelHeader = styled.div`
   gap: 12px;
 `;
 
-const ChannelAvatar = styled.div`
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: #555;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  font-weight: bold;
-  color: #fff;
-  overflow: hidden;
-  
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+const ChannelAvatarContainer = styled.div`
+  flex-shrink: 0;
 `;
 
 const ChannelInfo = styled.div`
@@ -235,37 +221,78 @@ const EmptyState = styled.div`
 function ChannelsPage() {
   const { t } = useSettings();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredChannels, setFilteredChannels] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalChannels, setTotalChannels] = useState(0);
+  const channelsPerPage = 20;
 
-  useEffect(() => {
-    loadChannels();
-  }, []);
-
-  useEffect(() => {
-    if (searchTerm) {
-      const filtered = channels.filter(channel =>
-        channel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        channel.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredChannels(filtered);
-    } else {
-      setFilteredChannels(channels);
-    }
-  }, [searchTerm, channels]);
-
-  const loadChannels = async () => {
+  const loadChannels = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/channels');
-      setChannels(response.data.channels || []);
+      const response = await api.get('/channels', {
+        params: {
+          page: currentPage,
+          limit: channelsPerPage
+        }
+      });
+      
+      setFilteredChannels(response.data.channels || []);
+      setTotalPages(response.data.pagination?.totalPages || 1);
+      setTotalChannels(response.data.pagination?.total || 0);
     } catch (error) {
       console.error('Erro ao carregar canais:', error);
+      setFilteredChannels([]);
     } finally {
       setLoading(false);
     }
+  }, [currentPage, channelsPerPage]);
+
+  const searchChannels = useCallback(async () => {
+    if (!searchTerm.trim()) {
+      loadChannels();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.get('/channels', {
+        params: {
+          search: searchTerm,
+          page: currentPage,
+          limit: channelsPerPage
+        }
+      });
+      
+      setFilteredChannels(response.data.channels || []);
+      setTotalPages(response.data.pagination?.totalPages || 1);
+      setTotalChannels(response.data.pagination?.total || 0);
+    } catch (error) {
+      console.error('Erro ao buscar canais:', error);
+      setFilteredChannels([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm, currentPage, channelsPerPage, loadChannels]);
+
+  useEffect(() => {
+    loadChannels();
+  }, [loadChannels]);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset para primeira página quando buscar
+    if (searchTerm) {
+      searchChannels();
+    } else {
+      loadChannels();
+    }
+  }, [searchTerm, searchChannels, loadChannels]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const formatNumber = (num) => {
@@ -278,9 +305,7 @@ function ChannelsPage() {
     return num.toString();
   };
 
-  const getInitials = (name) => {
-    return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
-  };
+
 
   return (
     <PageContainer>
@@ -292,9 +317,9 @@ function ChannelsPage() {
           <PageHeader>
             <h1>
               <FaUsers />
-              {t('channels')}
+              {t('channels')} ({totalChannels})
             </h1>
-            <p>{t('channelsDescription')}</p>
+            <p>{searchTerm ? `Resultados para "${searchTerm}"` : t('channelsDescription')}</p>
           </PageHeader>
 
           <SearchSection>
@@ -331,13 +356,14 @@ function ChannelsPage() {
                 <ChannelCard key={channel.id} to={`/channels/${channel.id}`}>
                   <ChannelContent>
                     <ChannelHeader>
-                      <ChannelAvatar>
-                        {channel.avatar ? (
-                          <img src={channel.avatar} alt={channel.name} />
-                        ) : (
-                          getInitials(channel.name)
-                        )}
-                      </ChannelAvatar>
+                      <ChannelAvatarContainer>
+                        <Avatar
+                          src={channel.avatar}
+                          name={channel.name}
+                          size={60}
+                          hover={true}
+                        />
+                      </ChannelAvatarContainer>
                       
                       <ChannelInfo>
                         <h3>
@@ -373,6 +399,17 @@ function ChannelsPage() {
                 </ChannelCard>
               ))}
             </ChannelsGrid>
+          )}
+          
+          {/* Paginação */}
+          {!loading && filteredChannels.length > 0 && totalPages > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              showInfo={true}
+              showQuickJump={true}
+            />
           )}
         </Container>
       </MainContent>

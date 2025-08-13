@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useSettings } from '../contexts/SettingsContext';
@@ -11,6 +11,7 @@ import AppHeader from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import Avatar from '../components/Avatar';
 import ChannelBanner from '../components/ChannelBanner';
+import Pagination from '../components/Pagination';
 
 const PageContainer = styled.div`
   display: flex;
@@ -365,26 +366,25 @@ function ChannelDetailsPage() {
   const [channel, setChannel] = useState(null);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [videosLoading, setVideosLoading] = useState(false);
   const [error, setError] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalVideos, setTotalVideos] = useState(0);
+  const videosPerPage = 20;
 
-  useEffect(() => {
-    loadChannelData();
-  }, [id]);
-
-  const loadChannelData = async () => {
+  const loadChannelData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
       
-      // Carrega dados do canal e vídeos
-      const [channelResponse, videosResponse] = await Promise.all([
-        api.get(`/channels/${id}`),
-        api.get(`/channels/${id}/videos`)
-      ]);
-      
+      // Carrega apenas dados do canal
+      const channelResponse = await api.get(`/channels/${id}`);
       setChannel(channelResponse.data);
-      setVideos(videosResponse.data.videos || []);
+      
+      // Reset página de vídeos
+      setCurrentPage(1);
     } catch (err) {
       console.error('Erro ao carregar canal:', err);
       if (err.response?.status === 404) {
@@ -394,6 +394,54 @@ function ChannelDetailsPage() {
       }
     } finally {
       setLoading(false);
+    }
+  }, [id]);
+
+  const loadVideos = useCallback(async () => {
+    try {
+      setVideosLoading(true);
+      
+      const videosResponse = await api.get(`/channels/${id}/videos`, {
+        params: {
+          page: currentPage,
+          limit: videosPerPage
+        }
+      });
+      
+      setVideos(videosResponse.data.videos || []);
+      
+      // Suporte para ambas as estruturas de resposta
+      const total = videosResponse.data.pagination?.total || videosResponse.data.total || 0;
+      const totalPages = videosResponse.data.pagination?.totalPages || Math.ceil(total / videosPerPage);
+      
+      setTotalPages(totalPages);
+      setTotalVideos(total);
+    } catch (err) {
+      console.error('Erro ao carregar vídeos:', err);
+      setVideos([]);
+    } finally {
+      setVideosLoading(false);
+    }
+  }, [id, currentPage]);
+
+  useEffect(() => {
+    loadChannelData();
+  }, [loadChannelData]);
+
+  useEffect(() => {
+    if (channel && id) {
+      loadVideos();
+    }
+  }, [channel, id, currentPage, loadVideos]);
+
+
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Scroll para a seção de vídeos
+    const videosSection = document.querySelector('#videos-section');
+    if (videosSection) {
+      videosSection.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -522,7 +570,7 @@ function ChannelDetailsPage() {
                     
                     <StatItem>
                       <div className="icon"><FaVideo /></div>
-                      <div className="value">{videos.length}</div>
+                      <div className="value">{totalVideos || videos.length}</div>
                       <div className="label">Vídeos</div>
                     </StatItem>
                     
@@ -554,53 +602,71 @@ function ChannelDetailsPage() {
               </ChannelInfoSection>
             </ChannelHeader>
             
-            <ContentSection>
+            <ContentSection id="videos-section">
               <SectionTitle>
                 <FaVideo />
-                Vídeos ({videos.length})
+                Vídeos ({totalVideos || videos.length})
+                {currentPage > 1 && ` - Página ${currentPage}`}
               </SectionTitle>
               
-              {videos.length === 0 ? (
+              {videosLoading ? (
+                <LoadingState>
+                  Carregando vídeos...
+                </LoadingState>
+              ) : videos.length === 0 ? (
                 <EmptyState>
                   <h3>Nenhum vídeo encontrado</h3>
                   <p>Este canal ainda não possui vídeos publicados.</p>
                 </EmptyState>
               ) : (
-                <VideosGrid>
-                  {videos.map(video => (
-                    <VideoCard 
-                      key={video.id}
-                      onClick={() => handleVideoClick(video)}
-                    >
-                      <VideoThumbnail>
-                        <img 
-                          src={video.thumbnail || '/placeholder-video.jpg'} 
-                          alt={video.title}
-                        />
-                        <div className="play-overlay">
-                          <FaPlay />
-                        </div>
-                      </VideoThumbnail>
-                      
-                      <VideoInfo>
-                        <h3>{video.title}</h3>
-                        <div className="meta">
-                          <span>
-                            <FaEye /> {formatNumber(video.views)} {t('views')}
-                          </span>
-                          <span>
-                            <FaCalendarAlt /> {formatDate(video.createdAt)}
-                          </span>
-                          {video.duration && (
+                <>
+                  <VideosGrid>
+                    {videos.map(video => (
+                      <VideoCard 
+                        key={video.id}
+                        onClick={() => handleVideoClick(video)}
+                      >
+                        <VideoThumbnail>
+                          <img 
+                            src={video.thumbnail || '/placeholder-video.jpg'} 
+                            alt={video.title}
+                          />
+                          <div className="play-overlay">
+                            <FaPlay />
+                          </div>
+                        </VideoThumbnail>
+                        
+                        <VideoInfo>
+                          <h3>{video.title}</h3>
+                          <div className="meta">
                             <span>
-                              <FaClock /> {formatDuration(video.duration)}
+                              <FaEye /> {formatNumber(video.views)} {t('views')}
                             </span>
-                          )}
-                        </div>
-                      </VideoInfo>
-                    </VideoCard>
-                  ))}
-                </VideosGrid>
+                            <span>
+                              <FaCalendarAlt /> {formatDate(video.createdAt)}
+                            </span>
+                            {video.duration && (
+                              <span>
+                                <FaClock /> {formatDuration(video.duration)}
+                              </span>
+                            )}
+                          </div>
+                        </VideoInfo>
+                      </VideoCard>
+                    ))}
+                  </VideosGrid>
+                  
+                  {/* Paginação dos vídeos */}
+                  {totalPages > 1 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                      showInfo={true}
+                      showQuickJump={true}
+                    />
+                  )}
+                </>
               )}
             </ContentSection>
           </>

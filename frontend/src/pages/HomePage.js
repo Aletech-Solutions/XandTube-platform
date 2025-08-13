@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import DownloadCard from '../components/DownloadCard';
+import Pagination from '../components/Pagination';
 import { downloadsAPI } from '../services/api';
 import { useSettings } from '../contexts/SettingsContext';
 
@@ -123,42 +124,7 @@ const DownloadsGrid = styled.div`
   }
 `;
 
-const LoadMoreButton = styled.button`
-  display: block;
-  margin: 40px auto;
-  padding: 15px 30px;
-  background-color: transparent;
-  border: 2px solid #303030;
-  border-radius: 8px;
-  color: #aaa;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s;
-  
-  &:hover {
-    background-color: #3d3d3d;
-    color: #fff;
-    border-color: #aaa;
-    transform: translateY(-2px);
-  }
-  
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
-  
-  @media (max-width: 768px) {
-    padding: 12px 24px;
-    font-size: 14px;
-  }
-  
-  @media (min-width: 1920px) {
-    padding: 20px 40px;
-    font-size: 18px;
-    margin: 60px auto;
-  }
-`;
+
 
 const EmptyState = styled.div`
   text-align: center;
@@ -265,53 +231,45 @@ function HomePage() {
   const [downloads, setDownloads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalDownloads, setTotalDownloads] = useState(0);
+  const downloadsPerPage = 20;
 
   const searchQuery = searchParams.get('search');
 
-  const loadDownloads = useCallback(async (page = 1, append = false) => {
+  const loadDownloads = useCallback(async () => {
     try {
-      if (!append) {
-        setLoading(true);
-        setError(null);
-      } else {
-        setLoadingMore(true);
-      }
+      setLoading(true);
+      setError(null);
 
       const response = searchQuery 
-        ? await downloadsAPI.search(searchQuery, page, 20)
-        : await downloadsAPI.list(page, 20);
+        ? await downloadsAPI.search(searchQuery, currentPage, downloadsPerPage)
+        : await downloadsAPI.list(currentPage, downloadsPerPage);
 
-      const newDownloads = response.data.downloads || [];
-
-      if (!append) {
-        setDownloads(newDownloads);
-        setCurrentPage(1);
-      } else {
-        setDownloads(prev => [...prev, ...newDownloads]);
-      }
-
-      setHasMore(response.data.page < response.data.totalPages);
-      setCurrentPage(page);
+      setDownloads(response.data.downloads || []);
+      setTotalPages(response.data.pagination?.totalPages || 1);
+      setTotalDownloads(response.data.pagination?.total || 0);
     } catch (err) {
       console.error('Erro ao carregar downloads:', err);
       setError('Erro ao carregar downloads. Verifique se há vídeos baixados.');
+      setDownloads([]);
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, currentPage, downloadsPerPage]);
 
   useEffect(() => {
     loadDownloads();
   }, [loadDownloads]);
 
-  const handleLoadMore = () => {
-    if (!loadingMore && hasMore) {
-      loadDownloads(currentPage + 1, true);
-    }
+  useEffect(() => {
+    setCurrentPage(1); // Reset para primeira página quando buscar
+  }, [searchQuery]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
 
@@ -332,7 +290,7 @@ function HomePage() {
       )}
 
       <SectionTitle>
-        {searchQuery ? t('searchResults') : t('yourDownloads')}
+        {searchQuery ? t('searchResults') : t('yourDownloads')} ({totalDownloads})
         {!searchQuery && (
           <ViewAllLink as={Link} to="/historico">
             {t('seeAll')}
@@ -373,21 +331,23 @@ function HomePage() {
       {!loading && !error && downloads.length > 0 && (
         <>
           <DownloadsGrid>
-                          {downloads.map(download => (
-                <DownloadCard
-                  key={download.id}
-                  download={download}
-                />
-              ))}
+            {downloads.map(download => (
+              <DownloadCard
+                key={download.id}
+                download={download}
+              />
+            ))}
           </DownloadsGrid>
 
-          {hasMore && (
-            <LoadMoreButton 
-              onClick={handleLoadMore} 
-              disabled={loadingMore}
-            >
-              {loadingMore ? t('loading') : t('loadMore')}
-            </LoadMoreButton>
+          {/* Paginação */}
+          {totalPages > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              showInfo={true}
+              showQuickJump={true}
+            />
           )}
         </>
       )}

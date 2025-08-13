@@ -75,7 +75,6 @@ export function createGradientStyle(name, direction = '135deg') {
  * Cria uma URL de data para usar como src de imagem
  */
 export function createGradientDataUrl(name, width = 120, height = 120) {
-  const initials = getInitials(name);
   const [color1, color2] = getGradientColors(name);
   
   // Cria um canvas para gerar a imagem
@@ -89,23 +88,9 @@ export function createGradientDataUrl(name, width = 120, height = 120) {
   gradient.addColorStop(0, color1);
   gradient.addColorStop(1, color2);
   
-  // Preenche o fundo
+  // Preenche o fundo com gradiente apenas
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height);
-  
-  // Adiciona as iniciais
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = `bold ${Math.floor(width * 0.4)}px Arial, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  
-  // Adiciona sombra no texto para melhor legibilidade
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-  ctx.shadowBlur = 3;
-  ctx.shadowOffsetX = 1;
-  ctx.shadowOffsetY = 1;
-  
-  ctx.fillText(initials, width / 2, height / 2);
   
   return canvas.toDataURL();
 }

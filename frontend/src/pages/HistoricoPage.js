@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import DownloadCard from '../components/DownloadCard';
+import Pagination from '../components/Pagination';
 import { downloadsAPI } from '../services/api';
 import { FaHistory, FaSyncAlt, FaDownload, FaHdd, FaTrash } from 'react-icons/fa';
 import { useSettings } from '../contexts/SettingsContext';
@@ -99,59 +100,9 @@ const HistoricoPage = () => {
     loadStats(); // Recarrega estatísticas após deletar
   };
 
-  const renderPagination = () => {
-    if (totalPages <= 1) return null;
-
-    const pages = [];
-    const maxPagesToShow = 5;
-    const startPage = Math.max(1, page - Math.floor(maxPagesToShow / 2));
-    const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <PageButton 
-          key={i} 
-          $active={i === page}
-          onClick={() => setPage(i)}
-        >
-          {i}
-        </PageButton>
-      );
-    }
-
-    return (
-      <PaginationContainer>
-        <PageButton 
-          onClick={() => setPage(1)}
-          disabled={page === 1}
-        >
-          Primeira
-        </PageButton>
-        
-        <PageButton 
-          onClick={() => setPage(page - 1)}
-          disabled={page === 1}
-        >
-          Anterior
-        </PageButton>
-
-        {pages}
-
-        <PageButton 
-          onClick={() => setPage(page + 1)}
-          disabled={page === totalPages}
-        >
-          Próxima
-        </PageButton>
-        
-        <PageButton 
-          onClick={() => setPage(totalPages)}
-          disabled={page === totalPages}
-        >
-          Última
-        </PageButton>
-      </PaginationContainer>
-    );
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -293,7 +244,13 @@ const HistoricoPage = () => {
             ))}
           </DownloadsGrid>
 
-          {renderPagination()}
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            showInfo={true}
+            showQuickJump={true}
+          />
         </>
       )}
     </HistoricoContainer>
@@ -494,33 +451,6 @@ const EmptyState = styled.div`
   }
 `;
 
-const PaginationContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 30px;
-  flex-wrap: wrap;
-`;
 
-const PageButton = styled.button`
-  padding: 8px 12px;
-  border: 1px solid #404040;
-  background: ${props => props.$active ? '#1976d2' : 'transparent'};
-  color: ${props => props.$active ? 'white' : '#aaa'};
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s ease;
-
-  &:hover:not(:disabled) {
-    background: ${props => props.$active ? '#1565c0' : '#404040'};
-    color: white;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
 
 export default HistoricoPage;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaPlay, FaDownload, FaTrash, FaClock, FaFileVideo, FaYoutube } from 'react-icons/fa';
+import { FaPlay, FaClock, FaFileVideo } from 'react-icons/fa';
 import { downloadsAPI } from '../services/api';
 import { createGradientStyle, getInitials } from '../utils/avatarUtils';
 
@@ -9,19 +9,7 @@ const DownloadCard = ({ download }) => {
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
 
-  // Formatar duração
-  const formatDuration = (seconds) => {
-    if (!seconds || isNaN(seconds)) return '00:00';
-    
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  };
+
 
   // Formatar tamanho do arquivo
   const formatFileSize = (bytes) => {
