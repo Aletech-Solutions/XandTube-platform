@@ -30,27 +30,54 @@ class YtdlpService {
     return this.hasCookies ? `--cookies "${this.cookiesPath}"` : '';
   }
 
-  // Constrói argumentos anti-detecção de bot
-  getAntiDetectionArgs() {
+  // Constrói argumentos anti-detecção de bot com user agents rotativos
+  getAntiDetectionArgs(attempt = 0) {
+    const userAgents = [
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15'
+    ];
+
+    const languages = [
+      'en-US,en;q=0.9',
+      'en-GB,en;q=0.9,pt;q=0.8',
+      'pt-BR,pt;q=0.9,en;q=0.8',
+      'es-ES,es;q=0.9,en;q=0.8'
+    ];
+
+    const selectedUA = userAgents[attempt % userAgents.length];
+    const selectedLang = languages[attempt % languages.length];
+    
     const args = [
-      '--user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"',
-      '--add-header "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"',
-      '--add-header "Accept-Language:en-US,en;q=0.5"',
-      '--add-header "Accept-Encoding:gzip, deflate"',
-      '--add-header "DNT:1"',
-      '--add-header "Connection:keep-alive"',
+      `--user-agent "${selectedUA}"`,
+      `--add-header "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"`,
+      `--add-header "Accept-Language:${selectedLang}"`,
+      '--add-header "Accept-Encoding:gzip, deflate, br"',
+      '--add-header "Cache-Control:no-cache"',
+      '--add-header "Pragma:no-cache"',
+      '--add-header "Sec-Ch-Ua-Mobile:?0"',
+      '--add-header "Sec-Ch-Ua-Platform:Windows"',
+      '--add-header "Sec-Fetch-Dest:document"',
+      '--add-header "Sec-Fetch-Mode:navigate"',
+      '--add-header "Sec-Fetch-Site:none"',
+      '--add-header "Sec-Fetch-User:?1"',
       '--add-header "Upgrade-Insecure-Requests:1"',
-      '--sleep-interval 1',
-      '--max-sleep-interval 3'
+      '--sleep-interval 2',
+      '--max-sleep-interval 5',
+      '--retries 3',
+      '--fragment-retries 3'
     ];
     
     return args.join(' ');
   }
 
   // Constrói comando completo com todas as proteções
-  buildProtectedCommand(baseCommand, url) {
+  buildProtectedCommand(baseCommand, url, attempt = 0) {
     const cookieArgs = this.getCookieArgs();
-    const antiDetectionArgs = this.getAntiDetectionArgs();
+    const antiDetectionArgs = this.getAntiDetectionArgs(attempt);
     
     // Primeira tentativa: com cookies e headers
     if (this.hasCookies) {
@@ -62,68 +89,176 @@ class YtdlpService {
     return `${baseCommand} ${browserCookieArgs} ${antiDetectionArgs} "${url}"`;
   }
 
-  // Método robusto para executar comandos com múltiplos fallbacks
+  // Método robusto para executar comandos com múltiplos fallbacks avançados
   async executeWithFallbacks(baseCommand, url, options = {}) {
-    const attempts = [
+    const strategies = [
+      // Estratégia 1: Cookies + Headers avançados
       {
-        name: 'Cookies file + Anti-detection',
-        command: () => this.buildProtectedCommand(baseCommand, url),
+        name: 'Cookies + Headers avançados',
+        command: (attempt) => this.hasCookies ? 
+          `${baseCommand} ${this.getCookieArgs()} ${this.getAntiDetectionArgs(attempt)} --geo-bypass --geo-bypass-country US "${url}"` :
+          null,
         condition: () => this.hasCookies
       },
+      
+      // Estratégia 2: Chrome cookies + IPv6
       {
-        name: 'Chrome browser cookies + Anti-detection',
-        command: () => `${baseCommand} --cookies-from-browser chrome ${this.getAntiDetectionArgs()} "${url}"`,
+        name: 'Chrome cookies + IPv6',
+        command: (attempt) => `${baseCommand} --cookies-from-browser chrome ${this.getAntiDetectionArgs(attempt)} --force-ipv6 --geo-bypass "${url}"`,
         condition: () => true
       },
+      
+      // Estratégia 3: Firefox cookies + diferentes headers
       {
-        name: 'Firefox browser cookies + Anti-detection',
-        command: () => `${baseCommand} --cookies-from-browser firefox ${this.getAntiDetectionArgs()} "${url}"`,
+        name: 'Firefox cookies + UA rotativo',
+        command: (attempt) => `${baseCommand} --cookies-from-browser firefox ${this.getAntiDetectionArgs(attempt)} --geo-bypass-country GB "${url}"`,
         condition: () => true
       },
+      
+      // Estratégia 4: Edge + bypass geográfico
       {
-        name: 'Edge browser cookies + Anti-detection',
-        command: () => `${baseCommand} --cookies-from-browser edge ${this.getAntiDetectionArgs()} "${url}"`,
+        name: 'Edge + Bypass geográfico',
+        command: (attempt) => `${baseCommand} --cookies-from-browser edge ${this.getAntiDetectionArgs(attempt)} --geo-bypass-country CA "${url}"`,
         condition: () => true
       },
+      
+      // Estratégia 5: Método embebido (para vídeos restritos)
       {
-        name: 'Only anti-detection headers',
-        command: () => `${baseCommand} ${this.getAntiDetectionArgs()} "${url}"`,
+        name: 'Método embebido',
+        command: (attempt) => `${baseCommand} ${this.getAntiDetectionArgs(attempt)} --referer "https://www.google.com/" --add-header "X-Forwarded-For:8.8.8.8" "${url}"`,
         condition: () => true
       },
+      
+      // Estratégia 6: Método idade verificada
       {
-        name: 'Basic command (last resort)',
-        command: () => `${baseCommand} "${url}"`,
+        name: 'Bypass verificação idade',
+        command: (attempt) => `${baseCommand} ${this.getAntiDetectionArgs(attempt)} --age-limit 999 --geo-bypass --add-header "Cookie:PREF=f1=50000000" "${url}"`,
+        condition: () => true
+      },
+      
+      // Estratégia 7: Método de extrator genérico
+      {
+        name: 'Extrator genérico',
+        command: (attempt) => `${baseCommand} --extractor-args "youtube:player_client=web" ${this.getAntiDetectionArgs(attempt)} "${url}"`,
+        condition: () => true
+      },
+      
+      // Estratégia 8: Último recurso - comando simples com delay longo
+      {
+        name: 'Último recurso (delay longo)',
+        command: (attempt) => `${baseCommand} --sleep-interval 10 --max-sleep-interval 15 --retries 5 "${url}"`,
         condition: () => true
       }
     ];
 
-    for (const attempt of attempts) {
-      if (!attempt.condition()) continue;
+    let attemptCount = 0;
+    const maxAttempts = strategies.length * 2; // Permite algumas repetições com diferentes UAs
+    
+    while (attemptCount < maxAttempts) {
+      const strategy = strategies[attemptCount % strategies.length];
+      
+      if (!strategy.condition()) {
+        attemptCount++;
+        continue;
+      }
       
       try {
-        console.log(`🔄 Tentativa: ${attempt.name}`);
-        const command = attempt.command();
-        const result = await execPromise(command, {
+        const commandResult = strategy.command(attemptCount);
+        if (!commandResult) {
+          attemptCount++;
+          continue;
+        }
+        
+        console.log(`🔄 Tentativa ${attemptCount + 1}/${maxAttempts}: ${strategy.name}`);
+        
+        const result = await execPromise(commandResult, {
           maxBuffer: options.maxBuffer || 1024 * 1024 * 10,
-          timeout: options.timeout || 60000
+          timeout: options.timeout || 120000 // Timeout maior para comandos complexos
         });
         
         if (result.stdout && result.stdout.trim()) {
-          console.log(`✅ Sucesso com: ${attempt.name}`);
+          console.log(`✅ Sucesso com: ${strategy.name}`);
           return result;
         }
       } catch (error) {
-        console.log(`❌ ${attempt.name} falhou: ${error.message.substring(0, 100)}...`);
+        const errorMsg = error.message.substring(0, 150);
+        console.log(`❌ ${strategy.name} falhou: ${errorMsg}...`);
         
-        // Se for erro de detecção de bot, adicionar delay antes da próxima tentativa
+        // Análise do tipo de erro para estratégia de delay
         if (error.message.includes('bot') || error.message.includes('Sign in')) {
-          console.log('🤖 Detecção de bot detectada, aguardando 5 segundos...');
-          await new Promise(resolve => setTimeout(resolve, 5000));
+          console.log('🤖 Detecção de bot - aguardando 8 segundos...');
+          await new Promise(resolve => setTimeout(resolve, 8000));
+        } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+          console.log('⏱️ Rate limit - aguardando 15 segundos...');
+          await new Promise(resolve => setTimeout(resolve, 15000));
+        } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+          console.log('🚫 Acesso negado - aguardando 10 segundos...');
+          await new Promise(resolve => setTimeout(resolve, 10000));
+        } else {
+          console.log('⚠️ Erro genérico - aguardando 3 segundos...');
+          await new Promise(resolve => setTimeout(resolve, 3000));
         }
+      }
+      
+      attemptCount++;
+    }
+    
+    throw new Error(`Todas as ${maxAttempts} tentativas falharam. O YouTube está bloqueando muito agressivamente. Tente novamente em alguns minutos ou use um IP/VPN diferente.`);
+  }
+
+  // Método especial para vídeos muito bloqueados usando técnicas avançadas
+  async executeAdvancedBypass(url, options = {}) {
+    console.log('🚀 Iniciando bypass avançado para vídeo altamente protegido...');
+    
+    const advancedStrategies = [
+      {
+        name: 'YouTube API simulada',
+        command: `yt-dlp --extractor-args "youtube:player_client=web,tv" --geo-bypass --cookies-from-browser chrome "${url}"`,
+      },
+      {
+        name: 'Método mobile web',
+        command: `yt-dlp --extractor-args "youtube:player_client=mweb" --user-agent "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15" "${url}"`,
+      },
+      {
+        name: 'Cliente Android TV',
+        command: `yt-dlp --extractor-args "youtube:player_client=tv_embedded" --geo-bypass --age-limit 999 "${url}"`,
+      },
+      {
+        name: 'Método embebido com iframe',
+        command: `yt-dlp --extractor-args "youtube:player_client=web" --referer "https://www.youtube.com/embed/" --add-header "Origin:https://www.youtube.com" "${url}"`,
+      },
+      {
+        name: 'Cliente iOS nativo',
+        command: `yt-dlp --extractor-args "youtube:player_client=ios" --user-agent "com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 16_0 like Mac OS X)" "${url}"`,
+      }
+    ];
+
+    for (let i = 0; i < advancedStrategies.length; i++) {
+      const strategy = advancedStrategies[i];
+      
+      try {
+        console.log(`🔧 Bypass avançado ${i + 1}/${advancedStrategies.length}: ${strategy.name}`);
+        
+        const result = await execPromise(strategy.command, {
+          maxBuffer: options.maxBuffer || 1024 * 1024 * 10,
+          timeout: 180000 // 3 minutos para estratégias avançadas
+        });
+        
+        if (result.stdout && result.stdout.trim()) {
+          console.log(`🎉 SUCESSO com bypass avançado: ${strategy.name}`);
+          return result;
+        }
+      } catch (error) {
+        console.log(`❌ Bypass ${strategy.name} falhou: ${error.message.substring(0, 100)}...`);
+        
+        // Delay progressivo mais longo para métodos avançados
+        const delay = (i + 1) * 3000; // 3s, 6s, 9s, etc.
+        console.log(`⏳ Aguardando ${delay/1000}s antes da próxima tentativa avançada...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
     
-    throw new Error('Todas as tentativas falharam. O YouTube pode estar bloqueando temporariamente.');
+    throw new Error('Todos os métodos avançados de bypass falharam. O vídeo pode estar permanentemente restrito.');
   }
 
   // Busca informações do vídeo/playlist sem baixar usando comando direto
@@ -162,7 +297,32 @@ class YtdlpService {
       console.log('✅ Informações do vídeo obtidas com sucesso!');
       return info;
     } catch (error) {
-      throw new Error(`Erro ao obter informações do vídeo: ${error.message}`);
+      console.log('⚠️ Métodos padrão falharam, tentando bypass avançado...');
+      
+      // Último recurso: bypass avançado
+      try {
+        const advancedResult = await this.executeAdvancedBypass(url, {
+          maxBuffer: 1024 * 1024 * 10
+        });
+        
+        // Processa output que pode conter --dump-json
+        let stdout = advancedResult.stdout.trim();
+        
+        // Se o comando avançado não tinha --dump-json, executa novamente para obter JSON
+        if (!stdout.startsWith('{')) {
+          console.log('📊 Bypass funcionou, obtendo JSON...');
+          const jsonCommand = `yt-dlp --extractor-args "youtube:player_client=web" --dump-json --no-warnings "${url}"`;
+          const jsonResult = await execPromise(jsonCommand, { maxBuffer: 1024 * 1024 * 10 });
+          stdout = jsonResult.stdout.trim();
+        }
+        
+        const info = JSON.parse(stdout);
+        console.log('🎉 Sucesso com bypass avançado!');
+        return info;
+      } catch (advancedError) {
+        console.log('❌ Bypass avançado também falhou:', advancedError.message);
+        throw new Error(`Todos os métodos falharam: ${error.message}. Bypass avançado: ${advancedError.message}`);
+      }
     }
   }
 

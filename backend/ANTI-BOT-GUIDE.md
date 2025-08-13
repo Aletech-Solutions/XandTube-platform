@@ -8,25 +8,39 @@ Este erro indica que o YouTube detectou uso automatizado. O XandTube agora imple
 
 ## 🛡️ Estratégias Implementadas
 
-### 1. **Headers de Navegador Real**
-- User-Agent do Chrome mais recente
-- Headers Accept padrão do navegador
-- Headers de idioma e encoding
-- Flags DNT (Do Not Track)
+### 1. **Headers Avançados e User-Agents Rotativos**
+- 6 User-Agents diferentes (Chrome, Edge, Firefox, macOS, Linux, Safari)
+- 4 configurações de idioma rotativas
+- Headers Sec-Ch-Ua completos do Chrome
+- Headers Sec-Fetch apropriados
+- Cache-Control e Pragma para simular navegador real
 
-### 2. **Múltiplas Fontes de Cookies**
-O sistema tenta automaticamente na seguinte ordem:
-1. 🍪 **Arquivo cookies.txt** (se existir)
-2. 🌐 **Chrome browser cookies** (`--cookies-from-browser chrome`)
-3. 🦊 **Firefox browser cookies** (`--cookies-from-browser firefox`)
-4. 🔷 **Edge browser cookies** (`--cookies-from-browser edge`)
-5. 🛡️ **Apenas headers anti-detecção**
-6. 📝 **Comando básico** (último recurso)
+### 2. **Múltiplas Estratégias de Bypass (16 tentativas)**
+O sistema agora executa **16 estratégias diferentes**:
+1. 🍪 **Cookies + Headers avançados** + Geo-bypass US
+2. 🌐 **Chrome cookies + IPv6** + Geo-bypass
+3. 🦊 **Firefox cookies + UA rotativo** + Geo-bypass UK
+4. 🔷 **Edge + Bypass geográfico** + Canadá
+5. 🔗 **Método embebido** + Referer Google
+6. 🔞 **Bypass verificação idade** + Cookie PREF
+7. 🎮 **Extrator genérico** + Player client web
+8. ⏰ **Último recurso** + Delays longos
 
-### 3. **Rate Limiting Inteligente**
-- Delay de 1-3 segundos entre requisições
-- Delay de 5 segundos ao detectar bloqueio de bot
-- Timeouts apropriados para evitar travamentos
+### 3. **Bypass Avançado (Última Instância)**
+Se todas as estratégias falharem, ativa bypass ultra-avançado:
+1. 📺 **YouTube API simulada** (web + tv clients)
+2. 📱 **Método mobile web** (iPhone user-agent)
+3. 📺 **Cliente Android TV** (tv_embedded)
+4. 🖼️ **Método embebido iframe** (embed referer)
+5. 🍎 **Cliente iOS nativo** (app user-agent)
+
+### 4. **Rate Limiting Inteligente**
+- Delays adaptativos baseados no tipo de erro:
+  - 🤖 **Bot detection**: 8 segundos
+  - ⏱️ **Rate limiting**: 15 segundos  
+  - 🚫 **Access denied**: 10 segundos
+  - ⚠️ **Outros erros**: 3 segundos
+- Delays progressivos para métodos avançados (3s → 15s)
 
 ## 📋 Métodos de Configuração
 
