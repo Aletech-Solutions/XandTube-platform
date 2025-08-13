@@ -243,19 +243,9 @@ function HomePage() {
       setLoading(true);
       setError(null);
 
-      console.log(`🏠 Carregando downloads - Página: ${currentPage}, Limite: ${downloadsPerPage}, Busca: "${searchQuery}"`);
-
       const response = searchQuery 
         ? await downloadsAPI.search(searchQuery, currentPage, downloadsPerPage)
         : await downloadsAPI.list(currentPage, downloadsPerPage);
-
-      console.log(`📊 Resposta da API downloads:`, {
-        totalDownloads: response.data.downloads?.length || 0,
-        total: response.data.total,
-        totalPages: response.data.totalPages,
-        currentPage: response.data.page,
-        fullResponse: response.data
-      });
 
       // A API retorna a estrutura diretamente, não dentro de 'data'
       setDownloads(response.data.downloads || []);
@@ -270,8 +260,6 @@ function HomePage() {
     }
   }, [searchQuery, currentPage, downloadsPerPage]);
 
-  console.log(`🔍 Estado atual: currentPage=${currentPage}, totalPages=${totalPages}, searchQuery="${searchQuery}"`); 
-
   // Carrega downloads quando a página, busca ou limite mudam
   useEffect(() => {
     loadDownloads();
@@ -279,20 +267,15 @@ function HomePage() {
 
   // Reset para primeira página quando o termo de busca muda (apenas se não estiver na página 1)
   useEffect(() => {
-    console.log(`🔄 searchQuery mudou para: "${searchQuery}", currentPage atual: ${currentPage}`);
     if (currentPage !== 1) {
-      console.log(`🔄 Resetando currentPage de ${currentPage} para 1`);
       setCurrentPage(1);
     }
   }, [searchQuery]);
 
   const handlePageChange = (page) => {
-    console.log(`🏠 Mudando para página ${page}`);
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-
 
   return (
     <HomeContainer>
@@ -360,13 +343,6 @@ function HomePage() {
           </DownloadsGrid>
 
           {/* Paginação */}
-          <div style={{ background: '#333', padding: '10px', margin: '20px 0', borderRadius: '5px' }}>
-            <div style={{ color: '#fff', fontSize: '12px', textAlign: 'center' }}>
-              Debug: totalPages={totalPages}, currentPage={currentPage}, downloads={downloads.length}
-            </div>
-          </div>
-          
-          {/* Paginação normal */}
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -374,13 +350,6 @@ function HomePage() {
             showInfo={true}
             showQuickJump={true}
           />
-          
-          {/* Debug info */}
-          {process.env.NODE_ENV === 'development' && (
-            <div style={{ color: '#aaa', padding: '20px', textAlign: 'center', fontSize: '12px' }}>
-              Debug: Página {currentPage} de {totalPages} | Total: {totalDownloads} downloads
-            </div>
-          )}
         </>
       )}
     </HomeContainer>
