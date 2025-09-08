@@ -11,6 +11,22 @@ const DownloadCard = ({ download }) => {
 
 
 
+  // Formatar duração de segundos para hh:mm:ss
+  const formatDuration = (seconds) => {
+    if (!seconds || isNaN(seconds)) return '00:00';
+    
+    const totalSeconds = parseInt(seconds);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const remainingSeconds = totalSeconds % 60;
+    
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+  };
+
   // Formatar tamanho do arquivo
   const formatFileSize = (bytes) => {
     if (!bytes || typeof bytes !== 'number') return 'N/A';
@@ -48,7 +64,8 @@ const DownloadCard = ({ download }) => {
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      second: '2-digit'
     });
   };
 
@@ -71,7 +88,7 @@ const DownloadCard = ({ download }) => {
       <ThumbnailContainer onClick={handleImageClick} style={imageError ? gradientStyle : {}}>
         {!imageError ? (
           <Thumbnail 
-            src={downloadsAPI.thumbnail(download.id)}
+            src={download.thumbnailUrl || downloadsAPI.thumbnail(download.id)}
             alt={download.title}
             onError={handleImageError}
           />
@@ -81,7 +98,7 @@ const DownloadCard = ({ download }) => {
             <FallbackTitle>{download.title}</FallbackTitle>
           </FallbackContent>
         )}
-        <DurationBadge>{download.duration || '00:00'}</DurationBadge>
+        <DurationBadge>{formatDuration(download.duration)}</DurationBadge>
         <PlayOverlay>
           <FaPlay />
         </PlayOverlay>

@@ -30,6 +30,24 @@ class YtdlpService {
     return this.hasCookies ? `--cookies "${this.cookiesPath}"` : '';
   }
 
+  // Obtém cookies do banco de dados se disponível
+  async getDatabaseCookieArgs() {
+    try {
+      const cookieService = require('./cookieService');
+      const bestCookies = await cookieService.getBestCookies('youtube.com');
+      
+      if (bestCookies) {
+        const tempCookieFile = await cookieService.writeCookiesToFile(bestCookies.id);
+        return `--cookies "${tempCookieFile}"`;
+      }
+    } catch (error) {
+      console.warn('⚠️ Erro ao obter cookies do banco:', error.message);
+    }
+    
+    // Fallback para cookies do arquivo se existir
+    return this.getCookieArgs();
+  }
+
   // Constrói argumentos anti-detecção de bot com user agents rotativos
   getAntiDetectionArgs(attempt = 0) {
     const userAgents = [
@@ -75,16 +93,17 @@ class YtdlpService {
   }
 
   // Constrói comando completo com todas as proteções
-  buildProtectedCommand(baseCommand, url, attempt = 0) {
-    const cookieArgs = this.getCookieArgs();
+  async buildProtectedCommand(baseCommand, url, attempt = 0) {
+    // Tentar obter cookies do banco de dados primeiro
+    const cookieArgs = await this.getDatabaseCookieArgs();
     const antiDetectionArgs = this.getAntiDetectionArgs(attempt);
     
-    // Primeira tentativa: com cookies e headers
-    if (this.hasCookies) {
+    // Se temos cookies (do banco ou arquivo), usar eles
+    if (cookieArgs) {
       return `${baseCommand} ${cookieArgs} ${antiDetectionArgs} "${url}"`;
     }
     
-    // Segunda tentativa: usar cookies do navegador (Chrome como padrão)
+    // Fallback: usar cookies do navegador (Chrome como padrão)
     const browserCookieArgs = '--cookies-from-browser chrome';
     return `${baseCommand} ${browserCookieArgs} ${antiDetectionArgs} "${url}"`;
   }
@@ -92,13 +111,16 @@ class YtdlpService {
   // Método robusto para executar comandos com múltiplos fallbacks avançados
   async executeWithFallbacks(baseCommand, url, options = {}) {
     const strategies = [
-      // Estratégia 1: Cookies + Headers avançados
+      // Estratégia 1: Cookies do banco + Headers avançados
       {
-        name: 'Cookies + Headers avançados',
-        command: (attempt) => this.hasCookies ? 
-          `${baseCommand} ${this.getCookieArgs()} ${this.getAntiDetectionArgs(attempt)} --geo-bypass --geo-bypass-country US "${url}"` :
-          null,
-        condition: () => this.hasCookies
+        name: 'Cookies do banco + Headers avançados',
+        command: async (attempt) => {
+          const cookieArgs = await this.getDatabaseCookieArgs();
+          return cookieArgs ? 
+            `${baseCommand} ${cookieArgs} ${this.getAntiDetectionArgs(attempt)} --geo-bypass --geo-bypass-country US "${url}"` :
+            null;
+        },
+        condition: () => true
       },
       
       // Estratégia 2: Chrome cookies + IPv6
@@ -163,7 +185,7 @@ class YtdlpService {
       }
       
       try {
-        const commandResult = strategy.command(attemptCount);
+        const commandResult = await strategy.command(attemptCount);
         if (!commandResult) {
           attemptCount++;
           continue;
@@ -331,8 +353,8 @@ class YtdlpService {
     try {
       console.log('🚀 Usando comando otimizado para playlist...');
       
-      const cookieArgs = this.getCookieArgs();
-      if (this.hasCookies) {
+      const cookieArgs = await this.getDatabaseCookieArgs();
+      if (cookieArgs) {
         console.log('🍪 Usando cookies para playlist');
       }
       
@@ -401,7 +423,8 @@ class YtdlpService {
       // Fallback: tenta método mais simples
       try {
         console.log('🔄 Tentando método alternativo para playlist...');
-        const fallbackCommand = `yt-dlp ${cookieArgs} --dump-json --no-warnings --max-downloads 5 "${url}"`;
+        const fallbackCookieArgs = await this.getDatabaseCookieArgs();
+        const fallbackCommand = `yt-dlp ${fallbackCookieArgs} --dump-json --no-warnings --max-downloads 5 "${url}"`;
         const { stdout } = await execPromise(
           fallbackCommand,
           { maxBuffer: 1024 * 1024 * 20 }
@@ -533,8 +556,8 @@ class YtdlpService {
 
     // Constrói comando yt-dlp com seletor de qualidade otimizado e proteções
     const quality = this.buildQualitySelector(options.quality);
-    const baseCommand = `yt-dlp -f "${quality}" --no-playlist --write-info-json --write-thumbnail --merge-output-format mp4 -o "${outputPath}"`;
-    const command = this.buildProtectedCommand(baseCommand, url);
+    const baseCommand = `yt-dlp -f "${quality}" --no-playlist --write-info-json --write-thumbnail --merge-output-format mp4 --geo-bypass --geo-bypass-country BR --prefer-free-formats --sub-langs "pt,pt-BR,en" -o "${outputPath}"`;
+    const command = await this.buildProtectedCommand(baseCommand, url);
 
     console.log('📥 Iniciando download com comando:', command);
     console.log('📊 Qualidade solicitada:', options.quality || 'best');
@@ -568,14 +591,27 @@ class YtdlpService {
           reject(error);
         });
 
-        ytdlProcess.on('close', (code) => {
+        ytdlProcess.on('close', async (code) => {
           console.log(`📋 Processo finalizado com código: ${code}`);
           
           if (code === 0) {
+            // Aguardar um pouco para garantir que todos os arquivos foram escritos
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Determinar caminhos dos arquivos gerados
+            const baseName = outputPath.replace('.mp4', '');
+            const thumbnailPath = await this.findThumbnailFile(baseName);
+            const infoPath = `${baseName}.info.json`;
+            
+            console.log(`🖼️ Thumbnail detectada: ${thumbnailPath ? path.basename(thumbnailPath) : 'Não encontrada'}`);
+            
             resolve({
               metadata,
               filePath: outputPath,
-              filename
+              filename,
+              thumbnailPath: thumbnailPath && await fs.pathExists(thumbnailPath) ? thumbnailPath : null,
+              infoPath: await fs.pathExists(infoPath) ? infoPath : null,
+              fileSize: await fs.pathExists(outputPath) ? (await fs.stat(outputPath)).size : null
             });
           } else {
             reject(new Error(`Download falhou com código ${code}`));
@@ -595,10 +631,23 @@ class YtdlpService {
         console.log('📝 Stderr:', stderr);
       }
       
+      // Aguardar um pouco para garantir que todos os arquivos foram escritos
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Determinar caminhos dos arquivos gerados
+      const baseName = outputPath.replace('.mp4', '');
+      const thumbnailPath = await this.findThumbnailFile(baseName);
+      const infoPath = `${baseName}.info.json`;
+      
+      console.log(`🖼️ Thumbnail detectada: ${thumbnailPath ? path.basename(thumbnailPath) : 'Não encontrada'}`);
+      
       return {
         metadata,
         filePath: outputPath,
-        filename
+        filename,
+        thumbnailPath: thumbnailPath && await fs.pathExists(thumbnailPath) ? thumbnailPath : null,
+        infoPath: await fs.pathExists(infoPath) ? infoPath : null,
+        fileSize: await fs.pathExists(outputPath) ? (await fs.stat(outputPath)).size : null
       };
     } catch (error) {
       console.error('❌ Erro no download:', error.message);
@@ -769,10 +818,10 @@ class YtdlpService {
     try {
       console.log('🔍 Listando formatos disponíveis para:', url);
       
-      const cookieArgs = this.getCookieArgs();
+      const cookieArgs = await this.getDatabaseCookieArgs();
       const command = `yt-dlp ${cookieArgs} --list-formats --dump-json "${url}"`;
       
-      if (this.hasCookies) {
+      if (cookieArgs) {
         console.log('🍪 Usando cookies para listar formatos');
       }
       
@@ -824,15 +873,121 @@ class YtdlpService {
     }
   }
 
+  // Get available video formats for quality selection
+  async getVideoFormats(videoUrl) {
+    try {
+      console.log('🔍 Obtendo formatos disponíveis para:', videoUrl);
+      
+      const cookieArgs = this.getCookieArgs();
+      const command = `yt-dlp ${cookieArgs} --list-formats --dump-json --no-warnings "${videoUrl}"`;
+      
+      const { stdout } = await execPromise(
+        command,
+        { maxBuffer: 1024 * 1024 * 5 }
+      );
+
+      if (!stdout.trim()) {
+        console.warn('⚠️ Nenhum formato retornado');
+        return [];
+      }
+
+      // Parse JSON lines
+      const lines = stdout.trim().split('\n').filter(line => line.trim());
+      const formats = [];
+
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line);
+          if (parsed.formats) {
+            // Se é o objeto principal com array de formatos
+            return parsed.formats;
+          } else if (parsed.format_id) {
+            // Se é um formato individual
+            formats.push(parsed);
+          }
+        } catch (parseError) {
+          // Ignorar linhas que não são JSON válido
+          continue;
+        }
+      }
+
+      console.log(`✅ Encontrados ${formats.length} formatos disponíveis`);
+      return formats;
+
+    } catch (error) {
+      console.error('❌ Erro ao obter formatos do vídeo:', error);
+      return [];
+    }
+  }
+
+  // Get recent videos from a channel
+  async getChannelVideos(channelUrl, limit = 5) {
+    try {
+      console.log(`🔍 Obtendo ${limit} vídeos recentes do canal:`, channelUrl);
+      
+      const cookieArgs = await this.getDatabaseCookieArgs();
+      const command = `yt-dlp ${cookieArgs} --dump-json --flat-playlist --playlist-end ${limit} --no-warnings "${channelUrl}"`;
+      
+      if (cookieArgs) {
+        console.log('🍪 Usando cookies para obter vídeos do canal');
+      }
+      
+      const { stdout } = await execPromise(
+        command,
+        { maxBuffer: 1024 * 1024 * 10 }
+      );
+
+      if (!stdout.trim()) {
+        console.warn('⚠️ Nenhum dado retornado para vídeos do canal');
+        return [];
+      }
+
+      // Parse each line as a separate JSON object
+      const lines = stdout.trim().split('\n').filter(line => line.trim());
+      const videos = [];
+
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line);
+          
+          // Skip if it's channel info (not a video)
+          if (parsed._type === 'playlist' || !parsed.id) {
+            continue;
+          }
+          
+          videos.push({
+            id: parsed.id,
+            title: parsed.title || 'Título não disponível',
+            description: parsed.description || null,
+            duration: parsed.duration || null,
+            upload_date: parsed.upload_date,
+            view_count: parsed.view_count || 0,
+            url: parsed.url || `https://www.youtube.com/watch?v=${parsed.id}`
+          });
+        } catch (parseError) {
+          console.warn('⚠️ Linha JSON inválida ignorada:', parseError.message);
+        }
+      }
+
+      console.log(`✅ Encontrados ${videos.length} vídeos do canal`);
+      return videos;
+
+    } catch (error) {
+      console.error('❌ Erro ao obter vídeos do canal:', error);
+      throw new Error(`Falha ao obter vídeos do canal: ${error.message}`);
+    }
+  }
+
   // Get channel information
   async getChannelInfo(channelUrl) {
     try {
       console.log('🔍 Obtendo informações do canal:', channelUrl);
       
-      const cookieArgs = this.getCookieArgs();
+      const cookieArgs = await this.getDatabaseCookieArgs();
+      // Obter informações do canal via playlist
       const command = `yt-dlp ${cookieArgs} --dump-json --flat-playlist --playlist-end 1 --no-warnings "${channelUrl}"`;
       
-      if (this.hasCookies) {
+      if (cookieArgs) {
         console.log('🍪 Usando cookies para obter informações do canal');
       }
       
@@ -865,7 +1020,8 @@ class YtdlpService {
 
       if (!channelInfo) {
         // Fallback: try to get channel info using different approach
-        const fallbackCommand = `yt-dlp ${cookieArgs} --dump-json --no-warnings --playlist-end 1 "${channelUrl}"`;
+        const fallbackCookieArgs = await this.getDatabaseCookieArgs();
+        const fallbackCommand = `yt-dlp ${fallbackCookieArgs} --dump-json --no-warnings --playlist-end 1 "${channelUrl}"`;
         const { stdout: fallbackStdout } = await execPromise(
           fallbackCommand,
           { maxBuffer: 1024 * 1024 * 10 }
@@ -873,7 +1029,23 @@ class YtdlpService {
         
         const fallbackLines = fallbackStdout.trim().split('\n').filter(line => line.trim());
         if (fallbackLines.length > 0) {
-          channelInfo = JSON.parse(fallbackLines[0]);
+          const videoInfo = JSON.parse(fallbackLines[0]);
+          
+          // Extrair informações do canal a partir do vídeo, priorizando campos do canal
+          channelInfo = {
+            _type: 'playlist',
+            id: videoInfo.channel_id || videoInfo.uploader_id,
+            channel_id: videoInfo.channel_id || videoInfo.uploader_id,
+            channel: videoInfo.channel || videoInfo.uploader,
+            uploader: videoInfo.uploader || videoInfo.channel,
+            uploader_id: videoInfo.uploader_id || videoInfo.channel_id,
+            title: videoInfo.channel || videoInfo.uploader, // Usar nome do canal, não título do vídeo
+            description: videoInfo.channel_description || videoInfo.description,
+            subscriber_count: videoInfo.channel_follower_count || videoInfo.subscriber_count,
+            video_count: videoInfo.playlist_count,
+            thumbnail: videoInfo.channel_thumbnail || videoInfo.thumbnail
+          };
+          console.log('ℹ️ Informações do canal extraídas via vídeo');
         }
       }
 
@@ -882,11 +1054,69 @@ class YtdlpService {
       }
 
       console.log('✅ Informações do canal obtidas com sucesso!');
+      console.log(`📊 Canal: ${channelInfo.channel || channelInfo.uploader || 'N/A'}`);
+      console.log(`📊 ID: ${channelInfo.id || channelInfo.channel_id || channelInfo.uploader_id || 'N/A'}`);
+      
       return channelInfo;
       
     } catch (error) {
       console.error('❌ Erro ao obter informações do canal:', error.message);
       throw new Error(`Erro ao obter informações do canal: ${error.message}`);
+    }
+  }
+
+  // Encontra o arquivo de thumbnail gerado pelo YT-DLP
+  async findThumbnailFile(baseName) {
+    try {
+      const possibleExtensions = ['.webp', '.jpg', '.jpeg', '.png'];
+      
+      // Método 1: Procurar com o nome exato
+      for (const ext of possibleExtensions) {
+        const thumbnailPath = `${baseName}${ext}`;
+        if (await fs.pathExists(thumbnailPath)) {
+          console.log(`🔍 Thumbnail encontrada (método 1): ${path.basename(thumbnailPath)}`);
+          return thumbnailPath;
+        }
+      }
+      
+      // Método 2: Procurar arquivos que começam com o baseName
+      const files = await fs.readdir(this.downloadsPath);
+      const fileBaseName = path.basename(baseName);
+      
+      const thumbnailFile = files.find(file => {
+        return file.startsWith(fileBaseName) && possibleExtensions.some(ext => file.endsWith(ext));
+      });
+      
+      if (thumbnailFile) {
+        const fullPath = path.join(this.downloadsPath, thumbnailFile);
+        console.log(`🔍 Thumbnail encontrada (método 2): ${thumbnailFile}`);
+        return fullPath;
+      }
+      
+      // Método 3: Procurar por padrão mais flexível (caso o nome tenha mudado)
+      const possibleThumbnails = files.filter(file => 
+        possibleExtensions.some(ext => file.endsWith(ext)) &&
+        file.includes(fileBaseName.split('_')[0]) // Usar apenas o ID do YouTube
+      );
+      
+      if (possibleThumbnails.length > 0) {
+        // Pegar o mais recente
+        const mostRecent = possibleThumbnails.sort((a, b) => {
+          const aTime = a.match(/_(\d+)\./)?.[1] || '0';
+          const bTime = b.match(/_(\d+)\./)?.[1] || '0';
+          return parseInt(bTime) - parseInt(aTime);
+        })[0];
+        
+        const fullPath = path.join(this.downloadsPath, mostRecent);
+        console.log(`🔍 Thumbnail encontrada (método 3): ${mostRecent}`);
+        return fullPath;
+      }
+      
+      console.log(`❌ Thumbnail não encontrada para: ${fileBaseName}`);
+      return null;
+    } catch (error) {
+      console.warn('⚠️ Erro ao procurar arquivo de thumbnail:', error.message);
+      return null;
     }
   }
 
@@ -906,10 +1136,10 @@ class YtdlpService {
       const fromDateFormatted = formatDate(fromDate);
       const toDateFormatted = formatDate(toDate);
 
-      const cookieArgs = this.getCookieArgs();
+      const cookieArgs = await this.getDatabaseCookieArgs();
       const command = `yt-dlp ${cookieArgs} --dump-json --flat-playlist --dateafter ${fromDateFormatted} --datebefore ${toDateFormatted} --no-warnings "${channelUrl}"`;
       
-      if (this.hasCookies) {
+      if (cookieArgs) {
         console.log('🍪 Usando cookies para buscar vídeos do canal');
       }
       

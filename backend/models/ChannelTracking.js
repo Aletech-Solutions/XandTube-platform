@@ -7,8 +7,8 @@ const sequelize = require('../config/database');
  */
 const ChannelTracking = sequelize.define('ChannelTracking', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true
   },
   
@@ -17,31 +17,27 @@ const ChannelTracking = sequelize.define('ChannelTracking', {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
-    field: 'youtube_channel_id',
     comment: 'YouTube channel ID (e.g., UCxxxxx or @username)'
   },
   
   channelUrl: {
     type: DataTypes.STRING,
     allowNull: false,
-    field: 'channel_url',
     comment: 'Full YouTube channel URL'
   },
   
   channelName: {
     type: DataTypes.STRING,
     allowNull: false,
-    field: 'channel_name',
     comment: 'Channel display name'
   },
   
   // User who added this tracking
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'user_id',
     references: {
-      model: 'Users',
+      model: 'users',
       key: 'id'
     },
     comment: 'User who added this channel to tracking'
@@ -51,7 +47,6 @@ const ChannelTracking = sequelize.define('ChannelTracking', {
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
-    field: 'is_active',
     comment: 'Whether this channel is actively being tracked'
   },
   
@@ -64,48 +59,41 @@ const ChannelTracking = sequelize.define('ChannelTracking', {
   saveToLibrary: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
-    field: 'save_to_library',
     comment: 'Whether to save downloaded videos to user library'
   },
   
   // Tracking metadata
   lastCheck: {
     type: DataTypes.DATE,
-    field: 'last_check',
     comment: 'Last time this channel was checked for new videos'
   },
   
   lastVideoId: {
     type: DataTypes.STRING,
-    field: 'last_video_id',
     comment: 'ID of the last video found (to avoid duplicates)'
   },
   
   totalVideosFound: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
-    field: 'total_videos_found',
     comment: 'Total number of videos found through tracking'
   },
   
   totalVideosDownloaded: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
-    field: 'total_videos_downloaded',
     comment: 'Total number of videos successfully downloaded'
   },
   
   // Error handling
   lastError: {
     type: DataTypes.TEXT,
-    field: 'last_error',
     comment: 'Last error message if any'
   },
   
   errorCount: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
-    field: 'error_count',
     comment: 'Number of consecutive errors (for automatic disabling)'
   },
   
@@ -113,7 +101,6 @@ const ChannelTracking = sequelize.define('ChannelTracking', {
   scheduledHour: {
     type: DataTypes.INTEGER,
     defaultValue: 2,
-    field: 'scheduled_hour',
     validate: {
       min: 0,
       max: 23
@@ -130,6 +117,7 @@ const ChannelTracking = sequelize.define('ChannelTracking', {
 }, {
   tableName: 'channel_tracking',
   timestamps: true,
+  underscored: true,
   indexes: [
     {
       fields: ['user_id']

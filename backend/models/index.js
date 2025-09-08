@@ -5,6 +5,8 @@ const Channel = require('./Channel');
 const ChannelTracking = require('./ChannelTracking');
 const Comment = require('./Comment');
 const Download = require('./Download');
+const ChannelImage = require('./ChannelImage');
+const CookieStorage = require('./CookieStorage');
 
 // Definindo associações
 
@@ -40,9 +42,15 @@ Download.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 User.hasMany(ChannelTracking, { foreignKey: 'userId', as: 'trackedChannels' });
 ChannelTracking.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+// User -> CookieStorage (Um usuário pode ter múltiplos conjuntos de cookies)
+User.hasMany(CookieStorage, { foreignKey: 'userId', as: 'cookieStorage' });
+CookieStorage.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 // Video -> Download (Um vídeo pode estar associado a um download, opcional)
 Video.belongsTo(Download, { foreignKey: 'downloadId', as: 'associatedDownload' });
 Download.hasOne(Video, { foreignKey: 'downloadId', as: 'associatedVideo' });
+
+// ChannelImage (não precisa de associação direta, usa channelId como chave)
 
 // Função para sincronizar o banco de dados
 const syncDatabase = async () => {
@@ -50,34 +58,74 @@ const syncDatabase = async () => {
     await sequelize.authenticate();
     console.log('✅ Conexão com banco de dados estabelecida com sucesso.');
     
-    // Primeiro tenta sync normal
+    // Configurar SQLite para melhor compatibilidade
+    await sequelize.query('PRAGMA foreign_keys = ON;');
+    await sequelize.query('PRAGMA journal_mode = WAL;');
+    
+    // Tentar sync normal primeiro
     try {
-      await sequelize.sync({ alter: true });
+      await sequelize.sync({ logging: false });
       console.log('✅ Modelos sincronizados com o banco de dados.');
     } catch (syncError) {
-      console.warn('⚠️ Sync normal falhou, tentando recriação da tabela Downloads...');
+      console.warn('⚠️ Sync normal falhou, tentando recriação completa...');
       console.warn('Erro original:', syncError.message);
       
-      // Se falhar, pode ser problema com a tabela Downloads
-      if (syncError.message.includes('downloads') || syncError.message.includes('userId')) {
+      try {
+        // Desabilitar foreign keys temporariamente
+        await sequelize.query('PRAGMA foreign_keys = OFF;');
+        
+        // Recriar todas as tabelas na ordem correta
+        console.log('🔄 Recriando tabelas na ordem correta...');
+        
+        await User.sync({ force: true });
+        console.log('✅ Tabela Users criada');
+        
+        await Channel.sync({ force: true });
+        console.log('✅ Tabela Channels criada');
+        
+        await Download.sync({ force: true });
+        console.log('✅ Tabela Downloads criada');
+        
+        await Video.sync({ force: true });
+        console.log('✅ Tabela Videos criada');
+        
+        await Comment.sync({ force: true });
+        console.log('✅ Tabela Comments criada');
+        
+        await ChannelTracking.sync({ force: true });
+        console.log('✅ Tabela ChannelTracking criada');
+        
+        await ChannelImage.sync({ force: true });
+        console.log('✅ Tabela ChannelImages criada');
+        
+        await CookieStorage.sync({ force: true });
+        console.log('✅ Tabela CookieStorage criada');
+        
+        // Reabilitar foreign keys
+        await sequelize.query('PRAGMA foreign_keys = ON;');
+        
+        console.log('✅ Todas as tabelas recriadas com sucesso.');
+        
+        // Criar usuário admin padrão
         try {
-          // Remove tabela downloads problemática
-          await sequelize.query('DROP TABLE IF EXISTS downloads;');
-          console.log('🗑️ Tabela downloads removida');
-          
-          // Recria apenas a tabela Downloads
-          await Download.sync({ force: true });
-          console.log('✅ Tabela Downloads recriada');
-          
-          // Tenta sync geral novamente
-          await sequelize.sync({ alter: true });
-          console.log('✅ Todos os modelos sincronizados após correção.');
-        } catch (recreateError) {
-          console.error('❌ Erro ao recriar tabela Downloads:', recreateError.message);
-          throw recreateError;
+          const adminExists = await User.findOne({ where: { username: 'admin' } });
+          if (!adminExists) {
+            await User.create({
+              username: 'admin',
+              email: 'admin@xandtube.local',
+              password: 'admin123',
+              fullName: 'Administrador',
+              role: 'admin'
+            });
+            console.log('✅ Usuário admin padrão criado');
+          }
+        } catch (adminError) {
+          console.warn('⚠️ Erro ao criar usuário admin:', adminError.message);
         }
-      } else {
-        throw syncError;
+        
+      } catch (recreateError) {
+        console.error('❌ Erro na recriação completa:', recreateError.message);
+        throw recreateError;
       }
     }
   } catch (error) {
@@ -94,5 +142,7 @@ module.exports = {
   ChannelTracking,
   Comment,
   Download,
+  ChannelImage,
+  CookieStorage,
   syncDatabase
 };

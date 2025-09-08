@@ -143,12 +143,28 @@ const Download = sequelize.define('Download', {
     comment: 'Data e hora do download'
   },
   
+  // Categoria do vídeo
+  category: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'general',
+    comment: 'Categoria do vídeo (news, general, entertainment, etc.)'
+  },
+  
+  // Fonte do download
+  source: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'manual',
+    comment: 'Fonte do download (manual, auto_channel, scheduled_job)'
+  },
+  
   // Relacionamento com usuário
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Users',
+      model: 'users',
       key: 'id'
     },
     onDelete: 'CASCADE',

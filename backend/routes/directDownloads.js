@@ -1,8 +1,44 @@
 const express = require('express');
 const router = express.Router();
+
+// Função para formatar tamanho de arquivo
+function formatFileSize(bytes) {
+  if (!bytes) return 'N/A';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let size = bytes;
+  let unitIndex = 0;
+  
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  
+  return `${size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+// Função para adaptar download para compatibilidade com frontend
+function adaptDownloadForFrontend(download) {
+  const downloadData = download.toJSON ? download.toJSON() : download;
+  
+  return {
+    ...downloadData,
+    // Campos esperados pelo frontend
+    videoUrl: `/api/direct-downloads/${downloadData.id}/stream`,
+    thumbnailUrl: downloadData.thumbnailPath ? `/api/direct-downloads/${downloadData.id}/thumbnail` : null,
+    fileSizeFormatted: formatFileSize(downloadData.fileSize),
+    viewCount: downloadData.metadata?.view_count || 0, // Usar view count dos metadados se disponível
+    // Manter campos originais também
+    id: downloadData.id,
+    title: downloadData.title,
+    channelName: downloadData.channelName,
+    originalUrl: downloadData.originalUrl,
+    resolution: downloadData.resolution,
+    duration: downloadData.duration
+  };
+}
 const path = require('path');
 const fs = require('fs-extra');
-const directDownloadService = require('../services/directDownloadService');
+const downloadService = require('../services/downloadService');
 const { authenticateToken } = require('../middleware/auth');
 
 /**
@@ -15,12 +51,18 @@ router.get('/debug', async (req, res) => {
     
     let result;
     if (search) {
-      result = await directDownloadService.searchDownloads(search, null, page, limit);
+      result = await downloadService.searchDownloads(search, null, page, limit);
     } else {
-      result = await directDownloadService.listDownloads(null, page, limit);
+      result = await downloadService.listDownloads(null, page, limit);
     }
 
-    res.json(result);
+    // Adaptar downloads para compatibilidade com frontend
+    const adaptedResult = {
+      ...result,
+      downloads: result.downloads.map(download => adaptDownloadForFrontend(download))
+    };
+    
+    res.json(adaptedResult);
   } catch (error) {
     console.error('Erro ao listar downloads (debug):', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -33,18 +75,45 @@ router.get('/debug', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
+    const { 
+      page = 1, 
+      limit = 10, 
+      search, 
+      category, 
+      source,
+      sortBy = 'downloadedAt',
+      sortOrder = 'DESC',
+      dateFrom,
+      dateTo
+    } = req.query;
+    
     // Downloads são públicos - não filtrar por usuário
     const userId = null;
 
+    // Construir filtros
+    const filters = {};
+    if (category) filters.category = category;
+    if (source) filters.source = source;
+    if (dateFrom) filters.dateFrom = new Date(dateFrom);
+    if (dateTo) filters.dateTo = new Date(dateTo);
+
     let result;
     if (search) {
-      result = await directDownloadService.searchDownloads(search, userId, page, limit);
+      result = await downloadService.searchDownloads(search, userId, page, limit, filters, sortBy, sortOrder);
     } else {
-      result = await directDownloadService.listDownloads(userId, page, limit);
+      result = await downloadService.listDownloads(userId, page, limit, search, filters, sortBy, sortOrder);
     }
 
-    res.json(result);
+    // Adaptar downloads para compatibilidade com frontend
+    const adaptedResult = {
+      success: true,
+      downloads: result.downloads.map(download => adaptDownloadForFrontend(download)),
+      total: result.total,
+      totalPages: result.totalPages,
+      currentPage: result.currentPage
+    };
+    
+    res.json(adaptedResult);
   } catch (error) {
     console.error('Erro ao listar downloads diretos:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -62,12 +131,18 @@ router.get('/all', authenticateToken, async (req, res) => {
 
     let result;
     if (search) {
-      result = await directDownloadService.searchDownloads(search, null, page, limit);
+      result = await downloadService.searchDownloads(search, null, page, limit);
     } else {
-      result = await directDownloadService.listDownloads(null, page, limit);
+      result = await downloadService.listDownloads(null, page, limit);
     }
 
-    res.json(result);
+    // Adaptar downloads para compatibilidade com frontend
+    const adaptedResult = {
+      ...result,
+      downloads: result.downloads.map(download => adaptDownloadForFrontend(download))
+    };
+    
+    res.json(adaptedResult);
   } catch (error) {
     console.error('Erro ao listar todos os downloads:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -82,11 +157,81 @@ router.get('/stats', async (req, res) => {
   try {
     // Stats são públicas - mostrar todos os downloads
     const userId = null;
-    const stats = await directDownloadService.getStats(userId);
-    res.json(stats);
+    const stats = await downloadService.getDownloadStats(userId);
+    res.json({
+      success: true,
+      stats: stats
+    });
   } catch (error) {
     console.error('Erro ao obter estatísticas:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Erro interno do servidor' 
+    });
+  }
+});
+
+/**
+ * GET /api/direct-downloads/new-videos-stats
+ * Obtém estatísticas para a aba New Videos (contadores por período)
+ */
+router.get('/new-videos-stats', async (req, res) => {
+  try {
+    const { Op } = require('sequelize');
+    const { Download } = require('../models');
+    
+    const now = new Date();
+    
+    // Calcular datas de referência
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(now);
+    weekStart.setDate(weekStart.getDate() - 7);
+    const monthStart = new Date(now);
+    monthStart.setMonth(monthStart.getMonth() - 1);
+    
+    // Contar downloads por período (apenas categoria 'news' - vídeos de canais trackados)
+    const [todayCount, weekCount, monthCount, totalCount] = await Promise.all([
+      Download.count({
+        where: {
+          downloadedAt: { [Op.gte]: todayStart },
+          category: 'news'
+        }
+      }),
+      Download.count({
+        where: {
+          downloadedAt: { [Op.gte]: weekStart },
+          category: 'news'
+        }
+      }),
+      Download.count({
+        where: {
+          downloadedAt: { [Op.gte]: monthStart },
+          category: 'news'
+        }
+      }),
+      Download.count({
+        where: {
+          category: 'news'
+        }
+      })
+    ]);
+    
+    res.json({
+      success: true,
+      stats: {
+        today: todayCount,
+        thisWeek: weekCount,
+        thisMonth: monthCount,
+        total: totalCount
+      }
+    });
+    
+  } catch (error) {
+    console.error('Erro ao obter estatísticas de novos vídeos:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Erro interno do servidor' 
+    });
   }
 });
 
@@ -97,14 +242,17 @@ router.get('/stats', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const downloadId = req.params.id;
-    const download = await directDownloadService.getDownload(downloadId);
+    const download = await downloadService.getDownloadById(downloadId);
 
     if (!download) {
       return res.status(404).json({ error: 'Download não encontrado' });
     }
 
     // Downloads são públicos - não verificar usuário
-    res.json(download);
+    // Adaptar dados para compatibilidade com frontend
+    const adaptedDownload = adaptDownloadForFrontend(download);
+    
+    res.json(adaptedDownload);
   } catch (error) {
     console.error('Erro ao buscar download:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -118,7 +266,7 @@ router.get('/:id', async (req, res) => {
 router.get('/:id/stream', async (req, res) => {
   try {
     const downloadId = req.params.id;
-    const download = await directDownloadService.getDownload(downloadId);
+    const download = await downloadService.getDownloadById(downloadId);
 
     if (!download) {
       return res.status(404).json({ error: 'Download não encontrado' });
@@ -175,7 +323,7 @@ router.get('/:id/stream', async (req, res) => {
 router.get('/:id/thumbnail', async (req, res) => {
   try {
     const downloadId = req.params.id;
-    const download = await directDownloadService.getDownload(downloadId);
+    const download = await downloadService.getDownloadById(downloadId);
 
     if (!download || !download.thumbnailPath) {
       return res.status(404).json({ error: 'Thumbnail não encontrada' });
@@ -225,13 +373,13 @@ router.delete('/:id/files', async (req, res) => {
     const downloadId = req.params.id;
     
     // Verifica se o download existe
-    const download = await directDownloadService.getDownload(downloadId);
+    const download = await downloadService.getDownloadById(downloadId);
     if (!download) {
       return res.status(404).json({ error: 'Download não encontrado' });
     }
 
     // Downloads são públicos - qualquer um pode deletar
-    const result = await directDownloadService.deleteDownloadFiles(downloadId);
+    const result = await downloadService.deleteDownloadFiles(downloadId);
     
     res.json({
       message: 'Arquivos deletados com sucesso',
@@ -251,7 +399,7 @@ router.delete('/:id/files', async (req, res) => {
  */
 router.get('/scan/folder', async (req, res) => {
   try {
-    const { downloads, total } = await directDownloadService.listDownloads(null, 1, 999999);
+    const { downloads, total } = await downloadService.listDownloads(null, 1, 999999);
     
     res.json({
       message: 'Pasta escaneada com sucesso',
@@ -276,7 +424,7 @@ router.get('/scan/folder', async (req, res) => {
  */
 router.post('/cache/clear', async (req, res) => {
   try {
-    await directDownloadService.clearCache();
+    await downloadService.clearCache();
     
     res.json({
       message: 'Cache limpo com sucesso',

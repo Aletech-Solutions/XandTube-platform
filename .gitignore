@@ -4,6 +4,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+/backend/cookies
+cookies.txt
+database_backup.sql
+database
+database.sqlite
+videos/downloads
+downloads-cache.json
 # Production builds
 build/
 dist/

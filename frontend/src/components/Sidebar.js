@@ -3,13 +3,13 @@ import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { 
   FaHome, 
-  FaFire, 
   FaHistory, 
   FaThumbsUp,
   FaFilm,
   FaYoutube,
   FaUsers,
-  FaCog
+  FaCog,
+  FaClock
 } from 'react-icons/fa';
 import { useSettings } from '../contexts/SettingsContext';
 
@@ -90,19 +90,27 @@ function Sidebar() {
         </SidebarItem>
         
         <SidebarItem 
-          to="/trending" 
-          className={isActive('/trending') ? 'active' : ''}
-        >
-          <FaFire />
-          {t('trending')}
-        </SidebarItem>
-        
-        <SidebarItem 
           to="/channels" 
           className={isActive('/channels') ? 'active' : ''}
         >
           <FaUsers />
           {t('channels')}
+        </SidebarItem>
+        
+        <SidebarItem 
+          to="/new" 
+          className={isActive('/new') ? 'active' : ''}
+        >
+          <FaClock />
+          {t('newVideos')}
+        </SidebarItem>
+        
+        <SidebarItem 
+          to="/channels-tracked" 
+          className={isActive('/channels-tracked') ? 'active' : ''}
+        >
+          <FaYoutube />
+          {t('channelsTracked')}
         </SidebarItem>
       </SidebarSection>
       
@@ -151,6 +159,14 @@ function Sidebar() {
         >
           <FaCog />
           {t('settings')}
+        </SidebarItem>
+        
+        <SidebarItem 
+          to="/cookies" 
+          className={isActive('/cookies') ? 'active' : ''}
+        >
+          🍪
+          Cookies
         </SidebarItem>
       </SidebarSection>
     </SidebarContainer>

@@ -420,6 +420,22 @@ const WatchPage = () => {
     navigate(-1);
   };
 
+  // Formatar duração de segundos para hh:mm:ss
+  const formatDuration = (seconds) => {
+    if (!seconds || isNaN(seconds)) return '00:00';
+    
+    const totalSeconds = parseInt(seconds);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const remainingSeconds = totalSeconds % 60;
+    
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+  };
+
   const formatFileSize = (bytes) => {
     if (!bytes) return 'N/A';
     const units = ['B', 'KB', 'MB', 'GB'];
@@ -455,7 +471,8 @@ const WatchPage = () => {
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      second: '2-digit'
     });
   };
 
@@ -516,7 +533,7 @@ const WatchPage = () => {
               <span>{formatFileSize(video.fileSize)}</span>
             </InfoItem>
             <InfoItem>
-              <span>{video.duration || 'N/A'}</span>
+              <span>{formatDuration(video.duration)}</span>
             </InfoItem>
           </VideoInfo>
           

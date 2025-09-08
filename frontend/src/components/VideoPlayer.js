@@ -541,7 +541,7 @@ const VideoPlayer = ({ video }) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
     if (url.startsWith('/')) {
-      const baseUrl = process.env.REACT_APP_API_URL || 'http://192.168.3.46:3001';
+      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
       return `${baseUrl}${url}`;
     }
     return url;

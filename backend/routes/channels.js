@@ -5,18 +5,26 @@ const path = require('path');
 const router = express.Router();
 
 // Função para carregar imagens customizadas dos canais
-const loadCustomChannelImages = () => {
-  const channelImagesPath = path.join(__dirname, '../../videos/channel-images.json');
+const loadCustomChannelImages = async () => {
+  const { ChannelImage } = require('../models');
   
   try {
-    if (fs.existsSync(channelImagesPath)) {
-      return JSON.parse(fs.readFileSync(channelImagesPath, 'utf8'));
-    }
+    const channelImages = await ChannelImage.findAll();
+    const imagesMap = {};
+    
+    channelImages.forEach(record => {
+      imagesMap[record.channelId] = {
+        avatar: record.avatarFilename,
+        banner: record.bannerFilename,
+        updatedAt: record.updatedAt
+      };
+    });
+    
+    return imagesMap;
   } catch (error) {
-    console.warn('Erro ao carregar imagens de canais:', error.message);
+    console.warn('Erro ao carregar imagens de canais do banco:', error.message);
+    return {};
   }
-  
-  return {};
 };
 
 // Função para ler arquivos de informação dos vídeos
@@ -45,10 +53,10 @@ const getVideoInfoFiles = () => {
 };
 
 // Função para extrair informações de canais dos vídeos
-const extractChannelsFromVideos = () => {
+const extractChannelsFromVideos = async () => {
   const infoFiles = getVideoInfoFiles();
   const channelsMap = new Map();
-  const customImages = loadCustomChannelImages();
+  const customImages = await loadCustomChannelImages();
   
   infoFiles.forEach(filePath => {
     try {
@@ -114,11 +122,11 @@ const extractChannelsFromVideos = () => {
 };
 
 // GET /api/channels - Listar todos os canais
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { search, limit = 20, page = 1 } = req.query;
     
-    let channels = extractChannelsFromVideos();
+    let channels = await extractChannelsFromVideos();
     let filteredChannels = [...channels];
     
     // Filtro por busca
@@ -158,9 +166,9 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/channels/:id - Obter canal específico
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const channels = extractChannelsFromVideos();
+    const channels = await extractChannelsFromVideos();
     const channel = channels.find(c => c.id === req.params.id);
     
     if (!channel) {
@@ -188,7 +196,7 @@ router.post('/', (req, res) => {
 });
 
 // PUT /api/channels/:id - Atualizar canal (desabilitado - canais são baseados nos vídeos)
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   res.status(405).json({ 
     error: 'Método não permitido',
     message: 'Informações dos canais são extraídas automaticamente dos vídeos baixados'
@@ -196,9 +204,9 @@ router.put('/:id', (req, res) => {
 });
 
 // PUT /api/channels/:id/subscribe - Inscrever-se no canal (simulado)
-router.put('/:id/subscribe', (req, res) => {
+router.put('/:id/subscribe', async (req, res) => {
   try {
-    const channels = extractChannelsFromVideos();
+    const channels = await extractChannelsFromVideos();
     const channel = channels.find(c => c.id === req.params.id);
     
     if (!channel) {
@@ -217,9 +225,9 @@ router.put('/:id/subscribe', (req, res) => {
 });
 
 // PUT /api/channels/:id/unsubscribe - Cancelar inscrição (simulado)
-router.put('/:id/unsubscribe', (req, res) => {
+router.put('/:id/unsubscribe', async (req, res) => {
   try {
-    const channels = extractChannelsFromVideos();
+    const channels = await extractChannelsFromVideos();
     const channel = channels.find(c => c.id === req.params.id);
     
     if (!channel) {
@@ -238,14 +246,14 @@ router.put('/:id/unsubscribe', (req, res) => {
 });
 
 // GET /api/channels/:id/videos - Obter vídeos do canal
-router.get('/:id/videos', (req, res) => {
+router.get('/:id/videos', async (req, res) => {
   try {
     const { limit = 20, page = 1 } = req.query;
     const channelId = req.params.id;
     
     console.log(`🔍 DEBUG: Buscando vídeos do canal ${channelId}, página ${page}, limite ${limit}`);
     
-    const channels = extractChannelsFromVideos();
+    const channels = await extractChannelsFromVideos();
     const channel = channels.find(c => c.id === channelId);
     
     if (!channel) {
@@ -309,7 +317,7 @@ router.get('/:id/avatar', (req, res) => {
 
 
 // DELETE /api/channels/:id - Deletar canal (desabilitado)
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   res.status(405).json({ 
     error: 'Método não permitido',
     message: 'Canais são gerenciados automaticamente baseados nos vídeos baixados'

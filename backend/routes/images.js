@@ -214,57 +214,68 @@ async function processAvatarImage(inputPath, channelId) {
 
 // Função para salvar informações da imagem do canal
 async function saveChannelImage(channelId, type, imagePath) {
-  const channelImagesPath = path.join(__dirname, '../../videos/channel-images.json');
+  const { ChannelImage } = require('../models');
   
-  let channelImages = {};
-  
-  // Carregar arquivo existente
-  if (await fs.pathExists(channelImagesPath)) {
-    try {
-      channelImages = await fs.readJson(channelImagesPath);
-    } catch (error) {
-      console.warn('Erro ao ler channel-images.json, criando novo:', error.message);
+  try {
+    // Buscar registro existente ou criar novo
+    let channelImageRecord = await ChannelImage.findOne({ where: { channelId } });
+    
+    if (!channelImageRecord) {
+      channelImageRecord = await ChannelImage.create({ channelId });
     }
+    
+    // Remover imagem anterior se existir
+    const oldFilename = type === 'avatar' ? channelImageRecord.avatarFilename : channelImageRecord.bannerFilename;
+    if (oldFilename) {
+      const oldImagePath = path.join(__dirname, '../../videos/images', oldFilename);
+      await fs.remove(oldImagePath).catch(() => {});
+    }
+    
+    // Atualizar com nova imagem
+    const filename = path.basename(imagePath);
+    const updateData = {};
+    
+    if (type === 'avatar') {
+      updateData.avatarFilename = filename;
+      updateData.avatarUrl = `/api/images/avatar/${filename}`;
+    } else if (type === 'banner') {
+      updateData.bannerFilename = filename;
+      updateData.bannerUrl = `/api/images/banner/${filename}`;
+    }
+    
+    await channelImageRecord.update(updateData);
+    
+    console.log(`✅ Imagem ${type} salva no banco para canal ${channelId}`);
+    
+  } catch (error) {
+    console.error(`❌ Erro ao salvar imagem ${type} no banco:`, error);
+    throw error;
   }
-  
-  // Inicializar canal se não existir
-  if (!channelImages[channelId]) {
-    channelImages[channelId] = {};
-  }
-  
-  // Remover imagem anterior se existir
-  if (channelImages[channelId][type]) {
-    const oldImagePath = path.join(__dirname, '../../videos/images', channelImages[channelId][type]);
-    await fs.remove(oldImagePath).catch(() => {});
-  }
-  
-  // Salvar nova imagem
-  channelImages[channelId][type] = path.basename(imagePath);
-  channelImages[channelId].updatedAt = new Date().toISOString();
-  
-  // Salvar arquivo
-  await fs.writeJson(channelImagesPath, channelImages, { spaces: 2 });
 }
 
 // Rota para obter informações de imagens do canal
 router.get('/channel/:channelId/info', async (req, res) => {
   try {
     const { channelId } = req.params;
-    const channelImagesPath = path.join(__dirname, '../../videos/channel-images.json');
+    const { ChannelImage } = require('../models');
     
-    let channelImages = {};
+    const channelImageRecord = await ChannelImage.findOne({ where: { channelId } });
     
-    if (await fs.pathExists(channelImagesPath)) {
-      channelImages = await fs.readJson(channelImagesPath);
+    if (channelImageRecord) {
+      res.json({
+        channelId,
+        avatar: channelImageRecord.avatarUrl,
+        banner: channelImageRecord.bannerUrl,
+        updatedAt: channelImageRecord.updatedAt
+      });
+    } else {
+      res.json({
+        channelId,
+        avatar: null,
+        banner: null,
+        updatedAt: null
+      });
     }
-    
-    const channelInfo = channelImages[channelId] || {};
-    
-    res.json({
-      channelId,
-      avatar: channelInfo.avatar ? `/api/images/avatar/${channelInfo.avatar}` : null,
-      updatedAt: channelInfo.updatedAt || null
-    });
     
   } catch (error) {
     console.error('Erro ao obter informações do canal:', error);

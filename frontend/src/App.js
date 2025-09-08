@@ -16,11 +16,14 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DownloadPage from './pages/DownloadPage';
 import HistoricoPage from './pages/HistoricoPage';
+import NewPage from './pages/NewPage';
+import ChannelsTrackedPage from './pages/ChannelsTrackedPage';
 import WatchPage from './pages/WatchPage';
 import ChannelsPage from './pages/ChannelsPage';
 import ChannelDetailsPage from './pages/ChannelDetailsPage';
 import ChannelManagePage from './pages/ChannelManagePage';
 import SettingsPage from './pages/SettingsPage';
+import CookiesPage from './pages/CookiesPage';
 import NotFoundPage from './pages/NotFoundPage';
 import api from './services/api';
 
@@ -163,7 +166,10 @@ function App() {
                       <Route path="/create-channel" element={<CreateChannelPage />} />
                       <Route path="/download" element={<DownloadPage />} />
                       <Route path="/historico" element={<HistoricoPage />} />
+                      <Route path="/new" element={<NewPage />} />
+                      <Route path="/channels-tracked" element={<ChannelsTrackedPage />} />
                       <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/cookies" element={<CookiesPage />} />
                       <Route path="*" element={<NotFoundPage />} />
                     </Routes>
                   </ContentArea>

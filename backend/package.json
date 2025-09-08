@@ -22,6 +22,7 @@
     "fs-extra": "^11.1.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
+    "node-cron": "^4.2.1",
     "path": "^0.12.7",
     "sequelize": "^6.33.0",
     "sharp": "^0.32.6",

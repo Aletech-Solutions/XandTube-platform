@@ -20,6 +20,7 @@ const downloadRoutes = require('./routes/download');
 const directDownloadsRoutes = require('./routes/directDownloads');
 const imageRoutes = require('./routes/images');
 const recommendationsRoutes = require('./routes/recommendations');
+const cookieRoutes = require('./routes/cookies');
 
 const app = express();
 const server = http.createServer(app);
@@ -51,6 +52,7 @@ app.use('/api/download', downloadRoutes);
 app.use('/api/direct-downloads', directDownloadsRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/recommendations', recommendationsRoutes);
+app.use('/api/cookies', cookieRoutes);
 
 // Health check
 app.get('/api/health', async (req, res) => {
@@ -151,14 +153,24 @@ const startServer = async () => {
       console.warn('⚠️ Problema no banco de dados, continuando sem sync:', dbError.message);
     }
     
-    // Testa sistema de downloads direto
+    // Testa sistema de downloads SQLite
     try {
-      console.log('🔍 Testando sistema de downloads direto...');
-      const directDownloadService = require('./services/directDownloadService');
-      const { downloads, total } = await directDownloadService.listDownloads(null, 1, 5);
-      console.log(`✅ Sistema direto funcionando: ${total} downloads encontrados`);
+      console.log('🔍 Testando sistema de downloads SQLite...');
+      const downloadService = require('./services/downloadService');
+      const { downloads, total } = await downloadService.listDownloads(null, 1, 5);
+      console.log(`✅ Sistema SQLite funcionando: ${total} downloads encontrados`);
     } catch (scanError) {
-      console.warn('⚠️ Erro ao testar downloads direto:', scanError.message);
+      console.warn('⚠️ Erro ao testar downloads SQLite:', scanError.message);
+    }
+    
+    // Inicializar serviço robusto de tracking de canais
+    try {
+      console.log('🔄 Iniciando sistema robusto de tracking de canais...');
+      const channelTrackingService = require('./services/channelTrackingService');
+      await channelTrackingService.startScheduledJob();
+      console.log('✅ Sistema de tracking robusto iniciado (escalável para 50+ canais)');
+    } catch (trackingError) {
+      console.warn('⚠️ Erro ao iniciar tracking de canais:', trackingError.message);
     }
     
     // Inicia servidor

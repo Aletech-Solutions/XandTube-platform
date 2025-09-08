@@ -97,6 +97,22 @@ const StyledLink = styled(Link)`
 function VideoCard({ video }) {
   const { t } = useSettings();
   
+  // Formatar duração de segundos para hh:mm:ss
+  const formatDuration = (seconds) => {
+    if (!seconds || isNaN(seconds)) return '00:00';
+    
+    const totalSeconds = parseInt(seconds);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const remainingSeconds = totalSeconds % 60;
+    
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+  };
+
   const formatViews = (views) => {
     if (!views || typeof views !== 'number') return '0';
     if (views >= 1000000) {
@@ -154,7 +170,7 @@ function VideoCard({ video }) {
               e.target.src = 'https://via.placeholder.com/320x180/333333/ffffff?text=XandTube';
             }}
           />
-          <Duration>{video.duration}</Duration>
+          <Duration>{formatDuration(video.duration)}</Duration>
         </ThumbnailContainer>
       </StyledLink>
       
