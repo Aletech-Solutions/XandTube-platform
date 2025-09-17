@@ -124,44 +124,96 @@ const extractChannelsFromVideos = async () => {
 // GET /api/channels - Listar todos os canais
 router.get('/', async (req, res) => {
   try {
-    const { search, limit = 20, page = 1 } = req.query;
+    const { search, limit = 20, page = 1, sortBy = 'name', sortOrder = 'ASC' } = req.query;
+    
+    console.log(`🔍 Buscando canais - Página: ${page}, Limite: ${limit}, Busca: "${search || 'N/A'}"`);
     
     let channels = await extractChannelsFromVideos();
     let filteredChannels = [...channels];
     
+    console.log(`📊 Total de canais extraídos: ${channels.length}`);
+    
     // Filtro por busca
-    if (search) {
-      const searchLower = search.toLowerCase();
+    if (search && search.trim()) {
+      const searchLower = search.toLowerCase().trim();
       filteredChannels = filteredChannels.filter(channel => 
         channel.name.toLowerCase().includes(searchLower) ||
-        channel.description.toLowerCase().includes(searchLower)
+        (channel.description && channel.description.toLowerCase().includes(searchLower))
       );
+      console.log(`🔍 Canais após filtro de busca: ${filteredChannels.length}`);
     }
     
+    // Ordenação
+    filteredChannels.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'videoCount':
+          aValue = a.videoCount || 0;
+          bValue = b.videoCount || 0;
+          break;
+        case 'subscribers':
+          aValue = a.subscribers || 0;
+          bValue = b.subscribers || 0;
+          break;
+        case 'totalViews':
+          aValue = a.totalViews || 0;
+          bValue = b.totalViews || 0;
+          break;
+        default: // 'name'
+          aValue = (a.name || '').toLowerCase();
+          bValue = (b.name || '').toLowerCase();
+      }
+      
+      if (sortOrder.toLowerCase() === 'desc') {
+        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+      } else {
+        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+      }
+    });
+    
     // Remover a propriedade videos para não sobrecarregar a resposta
-    filteredChannels = filteredChannels.map(({ videos, ...channel }) => channel);
+    const channelsWithoutVideos = filteredChannels.map(({ videos, ...channel }) => channel);
     
     // Paginação
-    const currentPage = parseInt(page);
-    const pageSize = parseInt(limit);
+    const currentPage = Math.max(1, parseInt(page));
+    const pageSize = Math.max(1, Math.min(100, parseInt(limit))); // Limitar entre 1 e 100
     const offset = (currentPage - 1) * pageSize;
-    const paginatedChannels = filteredChannels.slice(offset, offset + pageSize);
-    const totalPages = Math.ceil(filteredChannels.length / pageSize);
+    const paginatedChannels = channelsWithoutVideos.slice(offset, offset + pageSize);
+    const totalPages = Math.ceil(channelsWithoutVideos.length / pageSize);
     
-    res.json({
+    console.log(`📄 Paginação - Página ${currentPage}/${totalPages}, Offset: ${offset}, Retornando: ${paginatedChannels.length} canais`);
+    
+    const response = {
+      success: true,
       channels: paginatedChannels,
       pagination: {
-        total: filteredChannels.length,
+        total: channelsWithoutVideos.length,
         totalPages: totalPages,
         currentPage: currentPage,
         limit: pageSize,
         hasNext: currentPage < totalPages,
-        hasPrev: currentPage > 1
+        hasPrev: currentPage > 1,
+        startIndex: offset + 1,
+        endIndex: Math.min(offset + pageSize, channelsWithoutVideos.length)
+      },
+      meta: {
+        searchTerm: search || null,
+        sortBy,
+        sortOrder,
+        totalChannelsBeforeFilter: channels.length,
+        totalChannelsAfterFilter: channelsWithoutVideos.length
       }
-    });
+    };
+    
+    res.json(response);
   } catch (error) {
-    console.error('Erro ao buscar canais:', error);
-    res.status(500).json({ error: 'Erro ao buscar canais' });
+    console.error('❌ Erro ao buscar canais:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Erro interno do servidor',
+      message: error.message 
+    });
   }
 });
 

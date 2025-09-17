@@ -3,10 +3,11 @@ import styled from 'styled-components';
 import { 
   FaPlus, FaTrash, FaEdit, FaPlay, FaPause, FaClock, 
   FaCheckCircle, FaExclamationTriangle, FaYoutube, 
-  FaEye, FaDownload, FaCog, FaSync 
+  FaEye, FaDownload, FaCog, FaSync, FaSearch, FaFilter 
 } from 'react-icons/fa';
 import api from '../services/api';
 import { useSettings } from '../contexts/SettingsContext';
+import Pagination from '../components/Pagination';
 
 const Container = styled.div`
   padding: 24px;
@@ -471,6 +472,81 @@ const EmptyState = styled.div`
   color: var(--text-muted);
 `;
 
+const FiltersSection = styled.div`
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  align-items: center;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+const SearchContainer = styled.div`
+  position: relative;
+  flex: 1;
+  min-width: 250px;
+  
+  svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 16px;
+  }
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 12px 12px 12px 40px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+  
+  &::placeholder {
+    color: var(--text-muted);
+  }
+`;
+
+const FilterSelect = styled.select`
+  padding: 12px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  min-width: 150px;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+`;
+
+const FilterLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  
+  svg {
+    color: var(--primary-color);
+  }
+`;
+
 function ChannelsTrackedPage() {
   const { t } = useSettings();
   const [channels, setChannels] = useState([]);
@@ -486,26 +562,64 @@ function ChannelsTrackedPage() {
     saveToLibrary: true
   });
   const [submitting, setSubmitting] = useState(false);
+  
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalChannels, setTotalChannels] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const channelsPerPage = 10;
 
   useEffect(() => {
     loadChannels();
     loadStats();
     loadJobStats();
-  }, []);
+  }, [currentPage, searchTerm, statusFilter]);
+
+  // Reset para primeira página quando filtros mudam
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm, statusFilter]);
 
   const loadChannels = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/channel-tracking');
+      setError(null);
+      
+      const params = {
+        page: currentPage,
+        limit: channelsPerPage,
+        sortBy: 'createdAt',
+        sortOrder: 'DESC'
+      };
+      
+      if (searchTerm.trim()) {
+        params.search = searchTerm.trim();
+      }
+      
+      if (statusFilter) {
+        params.status = statusFilter;
+      }
+      
+      console.log('🔍 Carregando canais rastreados com parâmetros:', params);
+      
+      const response = await api.get('/channel-tracking', { params });
       
       if (response.data.success) {
         setChannels(response.data.data || []);
+        setTotalPages(response.data.pagination?.totalPages || 1);
+        setTotalChannels(response.data.pagination?.total || 0);
+        console.log(`📊 Carregados ${response.data.data?.length || 0} canais de ${response.data.pagination?.total || 0} total`);
       } else {
         throw new Error(response.data.error || 'Erro ao carregar canais');
       }
     } catch (err) {
       console.error('Erro ao carregar canais:', err);
       setError(err.message);
+      setChannels([]);
     } finally {
       setLoading(false);
     }
@@ -531,6 +645,20 @@ function ChannelsTrackedPage() {
     } catch (err) {
       console.error('Erro ao carregar status do job:', err);
     }
+  };
+
+  const handlePageChange = (page) => {
+    console.log(`📄 Mudando para página ${page}`);
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleStatusFilterChange = (e) => {
+    setStatusFilter(e.target.value);
   };
 
   const handleAddChannel = async (e) => {
@@ -661,13 +789,35 @@ function ChannelsTrackedPage() {
       <Header>
         <Title>
           <FaYoutube />
-          {t('channelsTracked')}
+          {t('channelsTracked')} ({totalChannels})
         </Title>
         <AddButton onClick={() => setShowAddModal(true)}>
           <FaPlus />
           {t('addChannel')}
         </AddButton>
       </Header>
+
+      <FiltersSection>
+        <SearchContainer>
+          <FaSearch />
+          <SearchInput
+            type="text"
+            placeholder="Buscar canais..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+        </SearchContainer>
+        
+        <FilterLabel>
+          <FaFilter />
+          Status:
+        </FilterLabel>
+        <FilterSelect value={statusFilter} onChange={handleStatusFilterChange}>
+          <option value="">Todos</option>
+          <option value="active">Ativos</option>
+          <option value="inactive">Inativos</option>
+        </FilterSelect>
+      </FiltersSection>
 
       <StatsContainer>
         <StatCard>
@@ -786,6 +936,17 @@ function ChannelsTrackedPage() {
             </ChannelCard>
           ))}
         </ChannelsList>
+      )}
+
+      {/* Paginação */}
+      {!loading && channels.length > 0 && totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          showInfo={true}
+          showQuickJump={true}
+        />
       )}
 
       {showAddModal && (

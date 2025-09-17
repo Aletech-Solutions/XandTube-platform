@@ -89,7 +89,7 @@ class JobSchedulerService {
    * Agenda job de verificação de canais
    */
   scheduleChannelCheckJob() {
-    const job = cron.schedule('0 * * * *', async () => {
+    const job = cron.schedule('*/15 * * * *', async () => {
       await this.runChannelCheck();
     }, {
       scheduled: true,
@@ -97,7 +97,7 @@ class JobSchedulerService {
     });
 
     this.jobs.set('channelCheck', job);
-    console.log('📅 Job de verificação de canais agendado (a cada hora)');
+    console.log('📅 Job de verificação de canais agendado (a cada 15 minutos)');
   }
 
   /**

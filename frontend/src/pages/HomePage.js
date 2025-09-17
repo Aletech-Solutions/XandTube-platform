@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import DownloadCard from '../components/DownloadCard';
 import Pagination from '../components/Pagination';
-import api, { recommendationsAPI } from '../services/api';
+import api, { recommendationsAPI, searchAPI } from '../services/api';
 import { useSettings } from '../contexts/SettingsContext';
 import { FaClock, FaThumbsUp, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
 
@@ -335,26 +335,44 @@ function HomePage() {
       setNewestLoading(true);
       setNewestError(null);
 
-      const params = {
-        page,
-        limit: videosPerPage,
-        sortBy: 'downloadedAt',
-        sortOrder: 'DESC'
-      };
+      let response;
 
-      if (searchQuery) {
-        params.search = searchQuery;
-      }
-
-      const response = await api.get('/direct-downloads', { params });
-
-      if (response.data.success !== false) {
-        setNewestVideos(response.data.downloads || []);
-        setNewestTotalPages(response.data.totalPages || Math.ceil((response.data.total || 0) / videosPerPage));
-        setNewestTotal(response.data.total || 0);
-        setNewestCurrentPage(page);
+      if (searchQuery && searchQuery.trim().length > 0) {
+        // Use advanced fuzzy search API
+        response = await searchAPI.search(searchQuery, {
+          page,
+          limit: videosPerPage,
+          sortBy: 'downloadedAt',
+          sortOrder: 'DESC'
+        });
+        
+        if (response.data.success !== false) {
+          setNewestVideos(response.data.videos || []);
+          setNewestTotalPages(response.data.totalPages || Math.ceil((response.data.total || 0) / videosPerPage));
+          setNewestTotal(response.data.total || 0);
+          setNewestCurrentPage(page);
+        } else {
+          throw new Error(response.data.error || 'Error loading search results');
+        }
       } else {
-        throw new Error(response.data.error || 'Error loading videos');
+        // Use regular API for browsing all videos
+        const params = {
+          page,
+          limit: videosPerPage,
+          sortBy: 'downloadedAt',
+          sortOrder: 'DESC'
+        };
+
+        response = await api.get('/direct-downloads', { params });
+
+        if (response.data.success !== false) {
+          setNewestVideos(response.data.downloads || []);
+          setNewestTotalPages(response.data.totalPages || Math.ceil((response.data.total || 0) / videosPerPage));
+          setNewestTotal(response.data.total || 0);
+          setNewestCurrentPage(page);
+        } else {
+          throw new Error(response.data.error || 'Error loading videos');
+        }
       }
     } catch (err) {
       console.error('Error loading newest videos:', err);

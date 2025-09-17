@@ -20,6 +20,7 @@ const downloadRoutes = require('./routes/download');
 const directDownloadsRoutes = require('./routes/directDownloads');
 const imageRoutes = require('./routes/images');
 const recommendationsRoutes = require('./routes/recommendations');
+const searchRoutes = require('./routes/search');
 const cookieRoutes = require('./routes/cookies');
 
 const app = express();
@@ -52,6 +53,7 @@ app.use('/api/download', downloadRoutes);
 app.use('/api/direct-downloads', directDownloadsRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/recommendations', recommendationsRoutes);
+app.use('/api/search', searchRoutes);
 app.use('/api/cookies', cookieRoutes);
 
 // Health check
@@ -161,6 +163,16 @@ const startServer = async () => {
       console.log(`✅ Sistema SQLite funcionando: ${total} downloads encontrados`);
     } catch (scanError) {
       console.warn('⚠️ Erro ao testar downloads SQLite:', scanError.message);
+    }
+    
+    // Sincronização automática de vídeos existentes
+    try {
+      console.log('🔄 Iniciando sincronização automática de vídeos...');
+      const downloadScanService = require('./services/downloadScanService');
+      const processedDownloads = await downloadScanService.scanAndRegisterDownloads();
+      console.log(`✅ Sincronização concluída: ${processedDownloads.length} vídeos processados`);
+    } catch (syncError) {
+      console.warn('⚠️ Erro na sincronização automática:', syncError.message);
     }
     
     // Inicializar serviço robusto de tracking de canais

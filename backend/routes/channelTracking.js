@@ -8,16 +8,58 @@ const router = express.Router();
 
 /**
  * @route GET /api/channel-tracking
- * @desc Get all tracked channels for the authenticated user
+ * @desc Get all tracked channels for the authenticated user with pagination
  * @access Private
  */
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
+    const { 
+      page = 1, 
+      limit = 20, 
+      search, 
+      status, 
+      sortBy = 'createdAt', 
+      sortOrder = 'DESC' 
+    } = req.query;
+
+    console.log(`🔍 Buscando canais rastreados - Usuário: ${userId}, Página: ${page}, Limite: ${limit}`);
+
+    // Construir condições de busca
+    const whereConditions = { userId };
     
-    const trackedChannels = await ChannelTracking.findAll({
-      where: { userId },
-      order: [['createdAt', 'DESC']],
+    if (search && search.trim()) {
+      const { Op } = require('sequelize');
+      whereConditions[Op.or] = [
+        { channelName: { [Op.like]: `%${search.trim()}%` } },
+        { channelUrl: { [Op.like]: `%${search.trim()}%` } }
+      ];
+    }
+    
+    if (status) {
+      if (status === 'active') {
+        whereConditions.isActive = true;
+      } else if (status === 'inactive') {
+        whereConditions.isActive = false;
+      }
+    }
+
+    // Validar parâmetros de paginação
+    const currentPage = Math.max(1, parseInt(page));
+    const pageSize = Math.max(1, Math.min(100, parseInt(limit)));
+    const offset = (currentPage - 1) * pageSize;
+
+    // Validar ordenação
+    const validSortFields = ['createdAt', 'channelName', 'lastCheck', 'totalVideosFound', 'totalVideosDownloaded', 'errorCount'];
+    const orderBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    const orderDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+    // Buscar canais com paginação
+    const { count, rows: trackedChannels } = await ChannelTracking.findAndCountAll({
+      where: whereConditions,
+      order: [[orderBy, orderDirection]],
+      limit: pageSize,
+      offset: offset,
       include: [
         {
           model: User,
@@ -26,6 +68,8 @@ router.get('/', authenticateToken, async (req, res) => {
         }
       ]
     });
+
+    console.log(`📊 Encontrados ${count} canais rastreados, retornando ${trackedChannels.length} na página ${currentPage}`);
 
     // Add computed fields
     const channelsWithStats = trackedChannels.map(channel => {
@@ -41,17 +85,35 @@ router.get('/', authenticateToken, async (req, res) => {
       };
     });
 
+    const totalPages = Math.ceil(count / pageSize);
+
     res.json({
       success: true,
       data: channelsWithStats,
-      total: trackedChannels.length
+      pagination: {
+        total: count,
+        totalPages: totalPages,
+        currentPage: currentPage,
+        limit: pageSize,
+        hasNext: currentPage < totalPages,
+        hasPrev: currentPage > 1,
+        startIndex: offset + 1,
+        endIndex: Math.min(offset + pageSize, count)
+      },
+      meta: {
+        searchTerm: search || null,
+        statusFilter: status || null,
+        sortBy: orderBy,
+        sortOrder: orderDirection
+      }
     });
 
   } catch (error) {
     console.error('❌ Erro ao buscar canais trackados:', error);
     res.status(500).json({
       success: false,
-      error: 'Erro interno do servidor'
+      error: 'Erro interno do servidor',
+      message: error.message
     });
   }
 });

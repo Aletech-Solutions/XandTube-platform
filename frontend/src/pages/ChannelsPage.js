@@ -245,13 +245,19 @@ function ChannelsPage() {
       });
       
       console.log(`📊 Resposta da API:`, {
+        success: response.data.success,
         totalCanais: response.data.channels?.length || 0,
-        paginacao: response.data.pagination
+        paginacao: response.data.pagination,
+        meta: response.data.meta
       });
       
-      setFilteredChannels(response.data.channels || []);
-      setTotalPages(response.data.pagination?.totalPages || 1);
-      setTotalChannels(response.data.pagination?.total || 0);
+      if (response.data.success !== false) {
+        setFilteredChannels(response.data.channels || []);
+        setTotalPages(response.data.pagination?.totalPages || 1);
+        setTotalChannels(response.data.pagination?.total || 0);
+      } else {
+        throw new Error(response.data.error || 'Erro ao carregar canais');
+      }
     } catch (error) {
       console.error('Erro ao buscar canais:', error);
       setFilteredChannels([]);

@@ -136,6 +136,36 @@ export const recommendationsAPI = {
   getPopular: (limit = 10) => api.get('/recommendations', { params: { limit } })
 };
 
+// Advanced Search API
+export const searchAPI = {
+  search: (query, options = {}) => {
+    const params = {
+      q: query,
+      page: options.page || 1,
+      limit: options.limit || 20,
+      sortBy: options.sortBy || 'relevance',
+      sortOrder: options.sortOrder || 'DESC',
+      includeMetadata: options.includeMetadata !== false ? 'true' : 'false'
+    };
+    
+    // Add filters
+    if (options.category) params.category = options.category;
+    if (options.source) params.source = options.source;
+    if (options.dateFrom) params.dateFrom = options.dateFrom;
+    if (options.dateTo) params.dateTo = options.dateTo;
+    
+    return api.get('/search', { params });
+  },
+  
+  getSuggestions: (query, limit = 10) => api.get('/search/suggestions', { 
+    params: { q: query, limit } 
+  }),
+  
+  getFilters: () => api.get('/search/filters'),
+  
+  getStats: () => api.get('/search/stats')
+};
+
 // Health check
 export const healthCheck = () => api.get('/health');
 

@@ -13,9 +13,18 @@ class DownloadScanService {
   /**
    * Escaneia a pasta de downloads e registra arquivos não catalogados
    */
-  async scanAndRegisterDownloads() {
+  async scanAndRegisterDownloads(options = {}) {
+    const startTime = Date.now();
+    const { 
+      skipExisting = true, 
+      batchSize = 10,
+      logProgress = true 
+    } = options;
+
     try {
-      console.log('🔍 Escaneando pasta de downloads...');
+      if (logProgress) {
+        console.log('🔍 Iniciando escaneamento da pasta de downloads...');
+      }
       
       if (!await fs.pathExists(this.downloadsPath)) {
         console.log('📁 Pasta de downloads não existe, criando...');
@@ -26,40 +35,124 @@ class DownloadScanService {
       const files = await fs.readdir(this.downloadsPath);
       const infoFiles = files.filter(file => file.endsWith('.info.json'));
       
-      console.log(`📊 Encontrados ${infoFiles.length} arquivos de metadados`);
+      if (logProgress) {
+        console.log(`📊 Encontrados ${infoFiles.length} arquivos de metadados para análise`);
+      }
+
+      if (infoFiles.length === 0) {
+        console.log('ℹ️ Nenhum arquivo .info.json encontrado');
+        return [];
+      }
+
+      // Verificar quantos já existem no banco se skipExisting estiver ativo
+      let existingCount = 0;
+      if (skipExisting && infoFiles.length > 0) {
+        const sampleIds = await this.extractYouTubeIds(infoFiles.slice(0, Math.min(infoFiles.length, 50)));
+        const existingDownloads = await Download.count({
+          where: {
+            youtubeId: sampleIds
+          }
+        });
+        existingCount = existingDownloads;
+      }
 
       const processedDownloads = [];
+      const errors = [];
+      let processed = 0;
+      let skipped = 0;
 
-      for (const infoFile of infoFiles) {
-        try {
-          const download = await this.processInfoFile(infoFile);
-          if (download) {
-            processedDownloads.push(download);
+      // Processar em lotes para melhor performance
+      for (let i = 0; i < infoFiles.length; i += batchSize) {
+        const batch = infoFiles.slice(i, i + batchSize);
+        
+        for (const infoFile of batch) {
+          try {
+            const result = await this.processInfoFile(infoFile, { skipExisting });
+            
+            if (result === 'skipped') {
+              skipped++;
+            } else if (result) {
+              processedDownloads.push(result);
+            }
+            processed++;
+
+            // Log de progresso a cada 20 arquivos
+            if (logProgress && processed % 20 === 0) {
+              console.log(`📈 Progresso: ${processed}/${infoFiles.length} arquivos processados`);
+            }
+          } catch (error) {
+            console.error(`❌ Erro ao processar ${infoFile}:`, error.message);
+            errors.push({ file: infoFile, error: error.message });
           }
-        } catch (error) {
-          console.error(`❌ Erro ao processar ${infoFile}:`, error.message);
+        }
+
+        // Pequena pausa entre lotes para não sobrecarregar
+        if (i + batchSize < infoFiles.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
 
-      console.log(`✅ Processados ${processedDownloads.length} downloads`);
+      const duration = Date.now() - startTime;
+      
+      if (logProgress) {
+        console.log(`✅ Escaneamento concluído em ${duration}ms`);
+        console.log(`📊 Estatísticas:`);
+        console.log(`   • Total analisado: ${infoFiles.length} arquivos`);
+        console.log(`   • Novos importados: ${processedDownloads.length}`);
+        console.log(`   • Já existentes: ${skipped}`);
+        console.log(`   • Erros: ${errors.length}`);
+      }
+
+      if (errors.length > 0 && errors.length < 10) {
+        console.log('⚠️ Erros encontrados:');
+        errors.forEach(err => console.log(`   • ${err.file}: ${err.error}`));
+      } else if (errors.length >= 10) {
+        console.log(`⚠️ ${errors.length} erros encontrados (muitos para exibir)`);
+      }
+
       return processedDownloads;
 
     } catch (error) {
-      console.error('❌ Erro ao escanear downloads:', error);
+      console.error('❌ Erro crítico ao escanear downloads:', error);
       throw error;
     }
   }
 
   /**
+   * Extrai YouTube IDs de uma lista de arquivos .info.json
+   */
+  async extractYouTubeIds(infoFiles) {
+    const ids = [];
+    
+    for (const infoFile of infoFiles) {
+      try {
+        const infoPath = path.join(this.downloadsPath, infoFile);
+        if (await fs.pathExists(infoPath)) {
+          const metadata = JSON.parse(await fs.readFile(infoPath, 'utf8'));
+          if (metadata.id) {
+            ids.push(metadata.id);
+          }
+        }
+      } catch (error) {
+        // Ignorar erros individuais na extração de IDs
+        continue;
+      }
+    }
+    
+    return ids;
+  }
+
+  /**
    * Processa um arquivo .info.json específico
    */
-  async processInfoFile(infoFileName) {
+  async processInfoFile(infoFileName, options = {}) {
+    const { skipExisting = true } = options;
     const infoPath = path.join(this.downloadsPath, infoFileName);
     
     try {
       // Verificar se o arquivo existe antes de tentar lê-lo
       if (!await fs.pathExists(infoPath)) {
-        throw new Error(`Arquivo de vídeo não encontrado para ${infoFileName.replace('.info.json', '')}`);
+        throw new Error(`Arquivo não encontrado: ${infoFileName}`);
       }
       
       // Lê o arquivo de metadados
@@ -69,14 +162,22 @@ class DownloadScanService {
       const youtubeId = metadata.id;
       const baseName = infoFileName.replace('.info.json', '');
       
+      if (!youtubeId) {
+        throw new Error(`YouTube ID não encontrado no arquivo ${infoFileName}`);
+      }
+      
       // Verifica se já existe no banco
       const existingDownload = await Download.findOne({
         where: { youtubeId: youtubeId }
       });
 
       if (existingDownload) {
-        console.log(`⚠️ Download já existe no banco: ${metadata.title}`);
-        return existingDownload;
+        if (skipExisting) {
+          return 'skipped'; // Indica que foi pulado
+        } else {
+          console.log(`⚠️ Download já existe no banco: ${metadata.title}`);
+          return existingDownload;
+        }
       }
 
       // Busca arquivos relacionados
@@ -91,14 +192,17 @@ class DownloadScanService {
       // Obtém informações do arquivo
       const videoStats = await fs.stat(path.join(this.downloadsPath, videoFile));
       
-      // Cria registro no banco (usando user ID padrão 1 para downloads existentes)
+      // Obter ou criar usuário padrão para sincronização
+      const defaultUser = await this.getOrCreateDefaultUser();
+      
+      // Cria registro no banco
       const downloadData = {
         youtubeId: youtubeId,
-        downloadId: baseName, // Usa o basename como downloadId
-        title: metadata.title || 'Título não disponível',
+        downloadId: `sync_${youtubeId}_${Date.now()}`, // ID único para sincronização
+        title: metadata.title || 'Vídeo sem título',
         description: metadata.description || null,
-        duration: metadata.duration || null,
-        channelName: metadata.uploader || metadata.channel || null,
+        duration: this.parseDuration(metadata.duration),
+        channelName: metadata.uploader || metadata.channel || 'Canal Desconhecido',
         channelId: metadata.uploader_id || metadata.channel_id || null,
         originalUrl: metadata.original_url || metadata.webpage_url || `https://youtube.com/watch?v=${youtubeId}`,
         quality: this.extractQuality(metadata),
@@ -110,9 +214,11 @@ class DownloadScanService {
         infoPath: infoPath,
         status: 'completed',
         progress: 100,
+        category: 'general', // Categoria padrão para vídeos sincronizados
+        source: 'sync', // Fonte é sincronização automática
         metadata: metadata,
-        downloadedAt: videoStats.birthtime || videoStats.mtime,
-        userId: 1 // User padrão para downloads existentes - você pode ajustar conforme necessário
+        downloadedAt: this.parseUploadDate(metadata.upload_date) || videoStats.birthtime || videoStats.mtime,
+        userId: defaultUser.id
       };
 
       const download = await Download.create(downloadData);
@@ -227,6 +333,65 @@ class DownloadScanService {
       totalSize,
       totalSizeFormatted: this.formatBytes(totalSize)
     };
+  }
+
+  /**
+   * Obtém ou cria usuário padrão para sincronização
+   */
+  async getOrCreateDefaultUser() {
+    const { User } = require('../models');
+    
+    let defaultUser = await User.findOne({ where: { username: 'syncuser' } });
+    
+    if (!defaultUser) {
+      defaultUser = await User.create({
+        username: 'syncuser',
+        email: 'sync@xandtube.local',
+        password: 'sync123',
+        fullName: 'Usuário de Sincronização',
+        role: 'user'
+      });
+      console.log('👤 Usuário padrão de sincronização criado');
+    }
+    
+    return defaultUser;
+  }
+
+  /**
+   * Converte duração para segundos
+   */
+  parseDuration(duration) {
+    if (!duration) return null;
+    if (typeof duration === 'number') return duration;
+    
+    // Se for string no formato HH:MM:SS ou MM:SS
+    if (typeof duration === 'string') {
+      const parts = duration.split(':').map(Number);
+      if (parts.length === 3) {
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      } else if (parts.length === 2) {
+        return parts[0] * 60 + parts[1];
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Converte data de upload para Date
+   */
+  parseUploadDate(uploadDate) {
+    if (!uploadDate) return null;
+    
+    if (typeof uploadDate === 'string' && uploadDate.match(/^\d{8}$/)) {
+      // Formato YYYYMMDD
+      const year = uploadDate.substring(0, 4);
+      const month = uploadDate.substring(4, 6);
+      const day = uploadDate.substring(6, 8);
+      return new Date(`${year}-${month}-${day}`);
+    }
+    
+    return new Date(uploadDate);
   }
 
   /**

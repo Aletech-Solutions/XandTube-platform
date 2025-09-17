@@ -48,41 +48,19 @@ class YtdlpService {
     return this.getCookieArgs();
   }
 
-  // Constrói argumentos anti-detecção de bot com user agents rotativos
+  // Constrói argumentos anti-detecção de bot com user agents rotativos (simplificado)
   getAntiDetectionArgs(attempt = 0) {
     const userAgents = [
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0',
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0',
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15'
-    ];
-
-    const languages = [
-      'en-US,en;q=0.9',
-      'en-GB,en;q=0.9,pt;q=0.8',
-      'pt-BR,pt;q=0.9,en;q=0.8',
-      'es-ES,es;q=0.9,en;q=0.8'
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0'
     ];
 
     const selectedUA = userAgents[attempt % userAgents.length];
-    const selectedLang = languages[attempt % languages.length];
     
     const args = [
       `--user-agent "${selectedUA}"`,
-      `--add-header "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"`,
-      `--add-header "Accept-Language:${selectedLang}"`,
-      '--add-header "Accept-Encoding:gzip, deflate, br"',
-      '--add-header "Cache-Control:no-cache"',
-      '--add-header "Pragma:no-cache"',
-      '--add-header "Sec-Ch-Ua-Mobile:?0"',
-      '--add-header "Sec-Ch-Ua-Platform:Windows"',
-      '--add-header "Sec-Fetch-Dest:document"',
-      '--add-header "Sec-Fetch-Mode:navigate"',
-      '--add-header "Sec-Fetch-Site:none"',
-      '--add-header "Sec-Fetch-User:?1"',
-      '--add-header "Upgrade-Insecure-Requests:1"',
+      '--add-header "Accept-Language:pt-BR,pt;q=0.9,en;q=0.8"',
       '--sleep-interval 2',
       '--max-sleep-interval 5',
       '--retries 3',
@@ -310,7 +288,7 @@ class YtdlpService {
     try {
       console.log('🚀 Obtendo informações do vídeo com métodos robustos...');
       
-      const baseCommand = 'yt-dlp --dump-json --no-warnings';
+      const baseCommand = 'yt-dlp --dump-json --no-warnings --extractor-args "youtube:lang=pt"';
       const result = await this.executeWithFallbacks(baseCommand, url, {
         maxBuffer: 1024 * 1024 * 10
       });
@@ -333,7 +311,7 @@ class YtdlpService {
         // Se o comando avançado não tinha --dump-json, executa novamente para obter JSON
         if (!stdout.startsWith('{')) {
           console.log('📊 Bypass funcionou, obtendo JSON...');
-          const jsonCommand = `yt-dlp --extractor-args "youtube:player_client=web" --dump-json --no-warnings "${url}"`;
+          const jsonCommand = `yt-dlp --extractor-args "youtube:player_client=web;lang=pt" --dump-json --no-warnings "${url}"`;
           const jsonResult = await execPromise(jsonCommand, { maxBuffer: 1024 * 1024 * 10 });
           stdout = jsonResult.stdout.trim();
         }
@@ -481,7 +459,7 @@ class YtdlpService {
 
     return {
       youtubeId: info.id || info.display_id || 'unknown',
-      title: info.title || 'Sem título',
+      title: info.title || 'Vídeo sem título',
       description: info.description || '',
       duration: info.duration || 0,
       thumbnail: info.thumbnail || info.thumbnails?.[0]?.url || '',
@@ -556,7 +534,7 @@ class YtdlpService {
 
     // Constrói comando yt-dlp com seletor de qualidade otimizado e proteções
     const quality = this.buildQualitySelector(options.quality);
-    const baseCommand = `yt-dlp -f "${quality}" --no-playlist --write-info-json --write-thumbnail --merge-output-format mp4 --geo-bypass --geo-bypass-country BR --prefer-free-formats --sub-langs "pt,pt-BR,en" -o "${outputPath}"`;
+    const baseCommand = `yt-dlp -f "${quality}" --no-playlist --write-info-json --write-thumbnail --merge-output-format mp4 --geo-bypass --geo-bypass-country BR --prefer-free-formats --sub-langs "pt,pt-BR,en" --extractor-args "youtube:lang=pt" -o "${outputPath}"`;
     const command = await this.buildProtectedCommand(baseCommand, url);
 
     console.log('📥 Iniciando download com comando:', command);
@@ -651,7 +629,42 @@ class YtdlpService {
       };
     } catch (error) {
       console.error('❌ Erro no download:', error.message);
-      throw error;
+      
+      // Log adicional para debug
+      if (error.stderr) {
+        console.error('📝 Stderr detalhado:', error.stderr);
+      }
+      
+      // Verificar se é um erro de comando muito longo
+      if (error.message.includes('too long') || error.message.includes('command line')) {
+        console.error('⚠️ Comando muito longo detectado, tentando versão simplificada...');
+        
+        // Tentar com comando mais simples
+        try {
+          const simpleCommand = `yt-dlp -f "best" --no-playlist -o "${outputPath}" "${url}"`;
+          console.log('🔄 Tentando comando simplificado:', simpleCommand);
+          
+          const { stdout } = await execPromise(simpleCommand, {
+            maxBuffer: 1024 * 1024 * 10
+          });
+          
+          console.log('✅ Download simplificado concluído');
+          
+          return {
+            metadata,
+            filePath: outputPath,
+            filename,
+            thumbnailPath: null,
+            infoPath: null,
+            fileSize: await fs.pathExists(outputPath) ? (await fs.stat(outputPath)).size : null
+          };
+        } catch (simpleError) {
+          console.error('❌ Comando simplificado também falhou:', simpleError.message);
+          throw new Error(`Download falhou: ${error.message}. Tentativa simplificada: ${simpleError.message}`);
+        }
+      }
+      
+      throw new Error(`Erro no download: ${error.message}`);
     }
   }
 
@@ -926,11 +939,12 @@ class YtdlpService {
       console.log(`🔍 Obtendo ${limit} vídeos recentes do canal:`, channelUrl);
       
       const cookieArgs = await this.getDatabaseCookieArgs();
-      const command = `yt-dlp ${cookieArgs} --dump-json --flat-playlist --playlist-end ${limit} --no-warnings "${channelUrl}"`;
+      const command = `yt-dlp ${cookieArgs} --dump-json --flat-playlist --playlist-end ${limit} --no-warnings --extractor-args "youtube:lang=pt" "${channelUrl}"`;
       
       if (cookieArgs) {
         console.log('🍪 Usando cookies para obter vídeos do canal');
       }
+      console.log('🇧🇷 Priorizando títulos em português');
       
       const { stdout } = await execPromise(
         command,
@@ -957,7 +971,7 @@ class YtdlpService {
           
           videos.push({
             id: parsed.id,
-            title: parsed.title || 'Título não disponível',
+            title: parsed.title || 'Vídeo sem título',
             description: parsed.description || null,
             duration: parsed.duration || null,
             upload_date: parsed.upload_date,
@@ -985,11 +999,12 @@ class YtdlpService {
       
       const cookieArgs = await this.getDatabaseCookieArgs();
       // Obter informações do canal via playlist
-      const command = `yt-dlp ${cookieArgs} --dump-json --flat-playlist --playlist-end 1 --no-warnings "${channelUrl}"`;
+      const command = `yt-dlp ${cookieArgs} --dump-json --flat-playlist --playlist-end 1 --no-warnings --extractor-args "youtube:lang=pt" "${channelUrl}"`;
       
       if (cookieArgs) {
         console.log('🍪 Usando cookies para obter informações do canal');
       }
+      console.log('🇧🇷 Priorizando títulos em português');
       
       const { stdout } = await execPromise(
         command, 
@@ -1137,11 +1152,12 @@ class YtdlpService {
       const toDateFormatted = formatDate(toDate);
 
       const cookieArgs = await this.getDatabaseCookieArgs();
-      const command = `yt-dlp ${cookieArgs} --dump-json --flat-playlist --dateafter ${fromDateFormatted} --datebefore ${toDateFormatted} --no-warnings "${channelUrl}"`;
+      const command = `yt-dlp ${cookieArgs} --dump-json --flat-playlist --dateafter ${fromDateFormatted} --datebefore ${toDateFormatted} --no-warnings --extractor-args "youtube:lang=pt" "${channelUrl}"`;
       
       if (cookieArgs) {
         console.log('🍪 Usando cookies para buscar vídeos do canal');
       }
+      console.log('🇧🇷 Priorizando títulos em português');
       
       const { stdout } = await execPromise(
         command,
@@ -1164,7 +1180,7 @@ class YtdlpService {
           if (parsed._type !== 'playlist' && parsed.id) {
             videos.push({
               id: parsed.id,
-              title: parsed.title || `Vídeo ${videos.length + 1}`,
+              title: parsed.title || 'Vídeo sem título',
               url: parsed.url || `https://www.youtube.com/watch?v=${parsed.id}`,
               upload_date: parsed.upload_date,
               duration: parsed.duration || 0,
