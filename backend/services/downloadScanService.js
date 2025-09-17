@@ -1,6 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 const { Download, Video, Channel } = require('../models');
+const { Op } = require('sequelize');
 
 /**
  * Serviço para escanear e processar downloads existentes na pasta
@@ -253,14 +254,43 @@ class DownloadScanService {
    */
   async findThumbnailFile(baseName) {
     const files = await fs.readdir(this.downloadsPath);
-    const imageExtensions = ['.webp', '.jpg', '.jpeg', '.png'];
+    const imageExtensions = ['.webp', '.jpg', '.jpeg', '.png', '.gif'];
     
+    // Primeiro, tentar encontrar thumbnail exato
     for (const ext of imageExtensions) {
       const thumbFile = `${baseName}${ext}`;
       if (files.includes(thumbFile)) {
         return thumbFile;
       }
     }
+    
+    // Se não encontrar, tentar variações comuns
+    const baseNameParts = baseName.split('_');
+    if (baseNameParts.length > 1) {
+      const videoId = baseNameParts[0]; // Primeiro parte é geralmente o YouTube ID
+      
+      for (const ext of imageExtensions) {
+        // Tentar apenas com o ID do YouTube
+        const thumbFile = `${videoId}${ext}`;
+        if (files.includes(thumbFile)) {
+          return thumbFile;
+        }
+        
+        // Tentar com padrões comuns de thumbnail
+        const patterns = [
+          `${videoId}_thumbnail${ext}`,
+          `${videoId}.thumb${ext}`,
+          `${baseName}.thumb${ext}`
+        ];
+        
+        for (const pattern of patterns) {
+          if (files.includes(pattern)) {
+            return pattern;
+          }
+        }
+      }
+    }
+    
     return null;
   }
 
@@ -268,13 +298,27 @@ class DownloadScanService {
    * Extrai qualidade dos metadados
    */
   extractQuality(metadata) {
+    // Tentar diferentes campos para qualidade
     if (metadata.format_note) {
       return metadata.format_note;
+    }
+    if (metadata.quality) {
+      return metadata.quality;
     }
     if (metadata.height) {
       return `${metadata.height}p`;
     }
-    return 'unknown';
+    if (metadata.format_id) {
+      return metadata.format_id;
+    }
+    // Tentar extrair do formato selecionado
+    if (metadata.format && typeof metadata.format === 'string') {
+      const qualityMatch = metadata.format.match(/(\d+p|\d+x\d+)/);
+      if (qualityMatch) {
+        return qualityMatch[1];
+      }
+    }
+    return 'best';
   }
 
   /**
@@ -289,10 +333,114 @@ class DownloadScanService {
    * Extrai resolução dos metadados
    */
   extractResolution(metadata) {
+    // Tentar diferentes campos para resolução
     if (metadata.width && metadata.height) {
       return `${metadata.width}x${metadata.height}`;
     }
+    if (metadata.resolution) {
+      return metadata.resolution;
+    }
+    // Tentar extrair do formato
+    if (metadata.format && typeof metadata.format === 'string') {
+      const resolutionMatch = metadata.format.match(/(\d+x\d+)/);
+      if (resolutionMatch) {
+        return resolutionMatch[1];
+      }
+    }
+    // Tentar extrair do format_note
+    if (metadata.format_note && typeof metadata.format_note === 'string') {
+      const resolutionMatch = metadata.format_note.match(/(\d+x\d+)/);
+      if (resolutionMatch) {
+        return resolutionMatch[1];
+      }
+    }
+    // Fallback baseado na altura
+    if (metadata.height) {
+      const commonResolutions = {
+        240: '426x240',
+        360: '640x360', 
+        480: '854x480',
+        720: '1280x720',
+        1080: '1920x1080',
+        1440: '2560x1440',
+        2160: '3840x2160'
+      };
+      return commonResolutions[metadata.height] || `${Math.round(metadata.height * 16/9)}x${metadata.height}`;
+    }
     return null;
+  }
+
+  /**
+   * Atualiza registros existentes com dados faltantes
+   */
+  async updateExistingRecords() {
+    console.log('🔄 Verificando e atualizando registros existentes...');
+    
+    // Buscar downloads que podem ter dados faltantes
+    const incompleteDownloads = await Download.findAll({
+      where: {
+        [Op.or]: [
+          { fileSize: null },
+          { resolution: null },
+          { quality: null },
+          { thumbnailPath: null }
+        ]
+      },
+      limit: 50
+    });
+    
+    console.log(`📊 Encontrados ${incompleteDownloads.length} registros com dados faltantes`);
+    
+    let updated = 0;
+    
+    for (const download of incompleteDownloads) {
+      try {
+        const baseName = path.basename(download.videoPath, path.extname(download.videoPath));
+        const infoPath = download.infoPath || path.join(this.downloadsPath, `${baseName}.info.json`);
+        
+        // Verificar se arquivo de info existe
+        if (await fs.pathExists(infoPath)) {
+          const metadata = JSON.parse(await fs.readFile(infoPath, 'utf8'));
+          const updates = {};
+          
+          // Atualizar fileSize se estiver faltando
+          if (!download.fileSize && await fs.pathExists(download.videoPath)) {
+            const stats = await fs.stat(download.videoPath);
+            updates.fileSize = stats.size;
+          }
+          
+          // Atualizar resolução se estiver faltando
+          if (!download.resolution) {
+            updates.resolution = this.extractResolution(metadata);
+          }
+          
+          // Atualizar qualidade se estiver faltando
+          if (!download.quality) {
+            updates.quality = this.extractQuality(metadata);
+          }
+          
+          // Atualizar thumbnailPath se estiver faltando
+          if (!download.thumbnailPath) {
+            const thumbnailFile = await this.findThumbnailFile(baseName);
+            if (thumbnailFile) {
+              updates.thumbnailPath = path.join(this.downloadsPath, thumbnailFile);
+            }
+          }
+          
+          // Aplicar atualizações se houver
+          if (Object.keys(updates).length > 0) {
+            await download.update(updates);
+            updated++;
+            console.log(`✅ Atualizado: ${download.title}`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Erro ao atualizar ${download.title}:`, error.message);
+      }
+    }
+    
+    console.log(`🎉 ${updated} registros atualizados com sucesso`);
+    return updated;
   }
 
   /**

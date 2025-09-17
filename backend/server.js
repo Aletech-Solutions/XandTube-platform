@@ -169,8 +169,16 @@ const startServer = async () => {
     try {
       console.log('🔄 Iniciando sincronização automática de vídeos...');
       const downloadScanService = require('./services/downloadScanService');
+      
+      // Primeiro, atualizar registros existentes com dados faltantes
+      const updatedRecords = await downloadScanService.updateExistingRecords();
+      
+      // Depois, processar novos arquivos
       const processedDownloads = await downloadScanService.scanAndRegisterDownloads();
-      console.log(`✅ Sincronização concluída: ${processedDownloads.length} vídeos processados`);
+      
+      console.log(`✅ Sincronização concluída:`);
+      console.log(`   • Registros atualizados: ${updatedRecords}`);
+      console.log(`   • Novos vídeos processados: ${processedDownloads.length}`);
     } catch (syncError) {
       console.warn('⚠️ Erro na sincronização automática:', syncError.message);
     }
