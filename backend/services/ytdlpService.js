@@ -228,6 +228,7 @@ class YtdlpService {
         }
         
         console.log(`🔄 Tentativa ${attemptCount + 1}/${maxAttempts}: ${strategy.name}`);
+        console.log(`🔧 COMANDO EXECUTADO: ${commandResult}`);
         
         const result = await execPromise(commandResult, {
           maxBuffer: options.maxBuffer || 1024 * 1024 * 10,
@@ -236,36 +237,32 @@ class YtdlpService {
         
         if (result.stdout && result.stdout.trim()) {
           console.log(`✅ Sucesso com: ${strategy.name}`);
+          console.log(`📊 Dados recebidos: ${result.stdout.length} caracteres`);
           return result;
+        } else {
+          console.log(`⚠️ ${strategy.name} retornou dados vazios`);
         }
       } catch (error) {
-        const errorMsg = error.message.substring(0, 150);
-        console.log(`❌ ${strategy.name} falhou: ${errorMsg}...`);
+        // Log completo do erro para diagnóstico
+        console.log(`❌ ${strategy.name} falhou:`);
+        console.log(`🔍 ERRO COMPLETO: ${error.message}`);
         
-        // Análise do tipo de erro para estratégia de delay
-        if (error.message.includes('bot') || error.message.includes('Sign in') || error.message.includes('confirm you\'re not a bot')) {
-          console.log('🤖 Detecção de bot detectada - aplicando estratégias avançadas...');
-          const delayTime = Math.min(10000 + (attemptCount * 2000), 30000); // Delay progressivo até 30s
+        // Análise detalhada do tipo de erro
+        const errorAnalysis = this.analyzeYtdlpError(error.message);
+        console.log(`📊 Análise: ${errorAnalysis.type} - ${errorAnalysis.description}`);
+        
+        if (errorAnalysis.suggestions.length > 0) {
+          console.log('💡 Sugestões:');
+          errorAnalysis.suggestions.forEach((suggestion, index) => {
+            console.log(`   ${index + 1}. ${suggestion}`);
+          });
+        }
+        
+        // Aplicar delay baseado no tipo de erro
+        const delayTime = errorAnalysis.delayTime || 5000;
+        if (delayTime > 0) {
           console.log(`⏳ Aguardando ${delayTime/1000} segundos antes da próxima tentativa...`);
           await new Promise(resolve => setTimeout(resolve, delayTime));
-          
-          // Log de orientação para o usuário
-          if (attemptCount > 3) {
-            console.log('💡 DICA: Para melhor performance, certifique-se de que o arquivo cookies.txt esteja atualizado.');
-            console.log('💡 Você pode exportar cookies do seu navegador usando uma extensão como "Get cookies.txt"');
-          }
-        } else if (error.message.includes('429') || error.message.includes('rate limit')) {
-          console.log('⏱️ Rate limit detectado - aguardando período maior...');
-          await new Promise(resolve => setTimeout(resolve, 20000));
-        } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
-          console.log('🚫 Acesso negado - tentando estratégia alternativa...');
-          await new Promise(resolve => setTimeout(resolve, 12000));
-        } else if (error.message.includes('private') || error.message.includes('unavailable')) {
-          console.log('🔒 Vídeo/Canal privado ou indisponível - pulando para próxima estratégia...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        } else {
-          console.log('⚠️ Erro genérico - aguardando antes de tentar novamente...');
-          await new Promise(resolve => setTimeout(resolve, 5000));
         }
       }
       
@@ -273,6 +270,177 @@ class YtdlpService {
     }
     
     throw new Error(`Todas as ${maxAttempts} tentativas falharam. O YouTube está bloqueando muito agressivamente. Tente novamente em alguns minutos ou use um IP/VPN diferente.`);
+  }
+
+  // Análise detalhada de erros do yt-dlp para melhor diagnóstico
+  analyzeYtdlpError(errorMessage) {
+    const analysis = {
+      type: 'DESCONHECIDO',
+      description: 'Erro não categorizado',
+      suggestions: [],
+      delayTime: 5000
+    };
+
+    // Detecção de Bot
+    if (errorMessage.includes('bot') || errorMessage.includes('Sign in') || errorMessage.includes('confirm you\'re not a bot')) {
+      analysis.type = 'DETECÇÃO_BOT';
+      analysis.description = 'YouTube detectou comportamento automatizado';
+      analysis.suggestions = [
+        '🍪 Atualize os cookies (exporte do navegador logado)',
+        '🌐 Use VPN ou mude IP',
+        '⏰ Aguarde mais tempo entre tentativas',
+        '🔄 Tente usar --cookies-from-browser'
+      ];
+      analysis.delayTime = 15000;
+    }
+    
+    // Rate Limiting
+    else if (errorMessage.includes('429') || errorMessage.includes('rate limit') || errorMessage.includes('Too Many Requests')) {
+      analysis.type = 'RATE_LIMIT';
+      analysis.description = 'Muitas requisições em pouco tempo';
+      analysis.suggestions = [
+        '⏱️ Aguarde mais tempo entre tentativas',
+        '🌐 Use VPN para mudar IP',
+        '🔧 Reduza frequência de requisições'
+      ];
+      analysis.delayTime = 30000;
+    }
+    
+    // Cookies inválidos/expirados
+    else if (errorMessage.includes('cookies') && (errorMessage.includes('invalid') || errorMessage.includes('expired'))) {
+      analysis.type = 'COOKIES_INVÁLIDOS';
+      analysis.description = 'Cookies expirados ou corrompidos';
+      analysis.suggestions = [
+        '🍪 Exporte cookies frescos do navegador',
+        '🔑 Faça login novamente no YouTube',
+        '🗑️ Limpe cookies antigos do banco',
+        '📁 Verifique se cookies.txt existe e tem conteúdo válido'
+      ];
+      analysis.delayTime = 5000;
+    }
+    
+    // Acesso negado genérico
+    else if (errorMessage.includes('403') || errorMessage.includes('Forbidden') || errorMessage.includes('access denied')) {
+      analysis.type = 'ACESSO_NEGADO';
+      analysis.description = 'Acesso negado pelo servidor';
+      analysis.suggestions = [
+        '🌐 Use VPN de país diferente',
+        '🍪 Tente cookies de conta diferente',
+        '🔄 Use --geo-bypass com país específico'
+      ];
+      analysis.delayTime = 12000;
+    }
+    
+    // Conteúdo privado/indisponível
+    else if (errorMessage.includes('private') || errorMessage.includes('unavailable') || errorMessage.includes('deleted')) {
+      analysis.type = 'CONTEÚDO_INDISPONÍVEL';
+      analysis.description = 'Vídeo/Canal privado ou removido';
+      analysis.suggestions = [
+        '🔒 Verifique se o canal/vídeo está público',
+        '🔍 Confirme se a URL está correta',
+        '👤 Use conta com acesso se necessário'
+      ];
+      analysis.delayTime = 2000;
+    }
+    
+    // Problemas de rede
+    else if (errorMessage.includes('timeout') || errorMessage.includes('connection') || errorMessage.includes('network')) {
+      analysis.type = 'PROBLEMA_REDE';
+      analysis.description = 'Problemas de conectividade';
+      analysis.suggestions = [
+        '🌐 Verifique conexão de internet',
+        '🔄 Tente novamente em alguns segundos',
+        '🛡️ Verifique firewall/proxy'
+      ];
+      analysis.delayTime = 10000;
+    }
+    
+    // Problemas com extrator
+    else if (errorMessage.includes('extractor') || errorMessage.includes('player') || errorMessage.includes('format')) {
+      analysis.type = 'PROBLEMA_EXTRATOR';
+      analysis.description = 'Problema com extração de dados do YouTube';
+      analysis.suggestions = [
+        '🆙 Atualize yt-dlp: pip install -U yt-dlp',
+        '🔧 Tente diferentes player_client (web, tv, mweb)',
+        '🔄 Use --extractor-args diferentes'
+      ];
+      analysis.delayTime = 8000;
+    }
+    
+    // Localização/geo-blocking
+    else if (errorMessage.includes('geo') || errorMessage.includes('country') || errorMessage.includes('region')) {
+      analysis.type = 'GEO_BLOQUEIO';
+      analysis.description = 'Conteúdo bloqueado por região';
+      analysis.suggestions = [
+        '🌐 Use VPN de país permitido',
+        '🔄 Tente --geo-bypass-country com diferentes países',
+        '🛡️ Use proxy de região adequada'
+      ];
+      analysis.delayTime = 5000;
+    }
+    
+    // Verificação de idade
+    else if (errorMessage.includes('age') || errorMessage.includes('18+') || errorMessage.includes('mature')) {
+      analysis.type = 'VERIFICAÇÃO_IDADE';
+      analysis.description = 'Conteúdo requer verificação de idade';
+      analysis.suggestions = [
+        '🔞 Use cookies de conta verificada (+18)',
+        '🔧 Adicione --age-limit 999',
+        '👤 Faça login em conta com idade verificada'
+      ];
+      analysis.delayTime = 3000;
+    }
+    
+    // Live streams
+    else if (errorMessage.includes('live') || errorMessage.includes('stream') || errorMessage.includes('broadcasting')) {
+      analysis.type = 'LIVE_STREAM';
+      analysis.description = 'Problemas com transmissão ao vivo';
+      analysis.suggestions = [
+        '📺 Verifique se a live ainda está ativa',
+        '🔄 Tente --live-from-start para lives',
+        '⏰ Aguarde alguns segundos e tente novamente'
+      ];
+      analysis.delayTime = 8000;
+    }
+    
+    // Se nenhum padrão foi encontrado, categorizar por códigos de erro HTTP
+    else if (errorMessage.includes('400')) {
+      analysis.type = 'REQUISIÇÃO_INVÁLIDA';
+      analysis.description = 'Requisição malformada (HTTP 400)';
+      analysis.suggestions = [
+        '🔍 Verifique se a URL está correta',
+        '🔧 Verifique parâmetros do yt-dlp'
+      ];
+    }
+    else if (errorMessage.includes('404')) {
+      analysis.type = 'NÃO_ENCONTRADO';
+      analysis.description = 'Conteúdo não encontrado (HTTP 404)';
+      analysis.suggestions = [
+        '🔍 Verifique se a URL está correta',
+        '📺 Confirme se o vídeo/canal existe'
+      ];
+    }
+    else if (errorMessage.includes('500') || errorMessage.includes('502') || errorMessage.includes('503')) {
+      analysis.type = 'ERRO_SERVIDOR';
+      analysis.description = 'Erro interno do YouTube';
+      analysis.suggestions = [
+        '⏰ Aguarde alguns minutos (problema do YouTube)',
+        '🔄 Tente novamente mais tarde'
+      ];
+      analysis.delayTime = 20000;
+    }
+    
+    // Se ainda não categorizou, dar mais detalhes sobre o erro genérico
+    if (analysis.type === 'DESCONHECIDO') {
+      analysis.description = `Erro não catalogado: ${errorMessage.substring(0, 100)}...`;
+      analysis.suggestions = [
+        '📋 Copie este erro completo e reporte no GitHub do yt-dlp',
+        '🆙 Tente atualizar yt-dlp',
+        '🔄 Tente com parâmetros diferentes'
+      ];
+    }
+
+    return analysis;
   }
 
   // Método especial para vídeos muito bloqueados usando técnicas avançadas
@@ -1007,16 +1175,16 @@ class YtdlpService {
     try {
       console.log(`🔍 Obtendo ${limit} vídeos recentes do canal:`, channelUrl);
       
-      const cookieArgs = await this.getDatabaseCookieArgs();
-      const command = `yt-dlp ${cookieArgs} --dump-json --flat-playlist --playlist-end ${limit} --no-warnings --extractor-args "youtube:lang=pt" "${channelUrl}"`;
+      // Usar o sistema anti-bot melhorado
+      const baseCommand = `yt-dlp --dump-json --flat-playlist --playlist-end ${limit} --no-warnings --extractor-args "youtube:lang=pt"`;
       
-      if (cookieArgs) {
-        console.log('🍪 Usando cookies para obter vídeos do canal');
-      }
+      console.log('🍪 Usando cookies para obter vídeos do canal');
       console.log('🇧🇷 Priorizando títulos em português');
+      console.log('🛡️ Usando estratégias anti-detecção de bot');
       
-      const { stdout } = await execPromise(
-        command,
+      const { stdout } = await this.executeWithFallbacks(
+        baseCommand,
+        channelUrl,
         { maxBuffer: 1024 * 1024 * 10 }
       );
 
@@ -1087,13 +1255,38 @@ class YtdlpService {
       const lines = stdout.trim().split('\n').filter(line => line.trim());
       let channelInfo = null;
 
+      console.log(`🔍 Analisando ${lines.length} linhas de resposta...`);
+
       for (const line of lines) {
         try {
           const parsed = JSON.parse(line);
+          console.log(`📝 Linha analisada: _type="${parsed._type}", channel="${parsed.channel}", uploader="${parsed.uploader}"`);
           
-          // Look for channel information
-          if (parsed._type === 'playlist' || parsed.channel || parsed.uploader) {
-            channelInfo = parsed;
+          // Look for channel information - pode vir como playlist ou com dados playlist_*
+          if (parsed._type === 'playlist' || parsed.channel || parsed.uploader || 
+              (parsed.playlist_channel && parsed.playlist_channel_id)) {
+            
+            // Se os dados estão nos campos playlist_*, reestruturar para formato padrão
+            if (parsed.playlist_channel && parsed.playlist_channel_id && !parsed.channel) {
+              channelInfo = {
+                _type: 'playlist',
+                id: parsed.playlist_channel_id,
+                channel_id: parsed.playlist_channel_id,
+                channel: parsed.playlist_channel,
+                uploader: parsed.playlist_uploader || parsed.playlist_channel,
+                uploader_id: parsed.playlist_uploader_id || parsed.playlist_channel_id,
+                title: parsed.playlist_title || parsed.playlist_channel,
+                description: parsed.description || `Canal: ${parsed.playlist_channel}`,
+                thumbnail: parsed.thumbnails ? parsed.thumbnails[parsed.thumbnails.length - 1]?.url : null,
+                webpage_url: parsed.playlist_webpage_url,
+                // Preservar dados originais para debug
+                _original_data: parsed
+              };
+            } else {
+              channelInfo = parsed;
+            }
+            
+            console.log(`✅ Informações do canal encontradas: ${JSON.stringify(channelInfo, null, 2).substring(0, 300)}...`);
             break;
           }
         } catch (parseError) {
@@ -1102,11 +1295,17 @@ class YtdlpService {
       }
 
       if (!channelInfo) {
-        // Fallback: try to get channel info using different approach
-        const fallbackCookieArgs = await this.getDatabaseCookieArgs();
-        const fallbackCommand = `yt-dlp ${fallbackCookieArgs} --dump-json --no-warnings --playlist-end 1 "${channelUrl}"`;
-        const { stdout: fallbackStdout } = await execPromise(
-          fallbackCommand,
+        console.log('⚠️ Nenhuma informação de canal encontrada nas linhas analisadas');
+        console.log('📋 Primeira linha de dados:', lines[0] ? lines[0].substring(0, 200) + '...' : 'Nenhuma linha');
+      }
+
+      if (!channelInfo) {
+        // Fallback: try to get channel info using different approach with our improved system
+        console.log('🔄 Primeira tentativa não retornou info do canal, tentando abordagem alternativa...');
+        const fallbackBaseCommand = 'yt-dlp --dump-json --no-warnings --playlist-end 1';
+        const { stdout: fallbackStdout } = await this.executeWithFallbacks(
+          fallbackBaseCommand,
+          channelUrl,
           { maxBuffer: 1024 * 1024 * 10 }
         );
         
@@ -1268,6 +1467,65 @@ class YtdlpService {
     } catch (error) {
       console.error('❌ Erro ao buscar vídeos do canal:', error.message);
       throw new Error(`Erro ao buscar vídeos do canal: ${error.message}`);
+    }
+  }
+
+  // Método combinado: obtém informações do canal + vídeos recentes em sequência otimizada
+  async getChannelInfoAndVideos(channelUrl, videoLimit = 5) {
+    try {
+      console.log(`🔍 Obtendo informações completas do canal + ${videoLimit} vídeos recentes`);
+      console.log(`📺 Canal: ${channelUrl}`);
+      
+      const startTime = Date.now();
+      
+      // Passo 1: Obter informações básicas do canal
+      console.log('📋 Passo 1: Obtendo informações do canal...');
+      const channelInfo = await this.getChannelInfo(channelUrl);
+      
+      console.log(`✅ Canal identificado: ${channelInfo.channel || channelInfo.uploader}`);
+      console.log(`🆔 ID do canal: ${channelInfo.id || channelInfo.channel_id}`);
+      
+      // Passo 2: Obter vídeos recentes do canal
+      console.log(`📺 Passo 2: Obtendo ${videoLimit} vídeos mais recentes...`);
+      const recentVideos = await this.getChannelVideos(channelUrl, videoLimit);
+      
+      const endTime = Date.now();
+      const duration = ((endTime - startTime) / 1000).toFixed(2);
+      
+      // Combinar resultados
+      const result = {
+        channel: {
+          id: channelInfo.id || channelInfo.channel_id,
+          name: channelInfo.channel || channelInfo.uploader,
+          title: channelInfo.title,
+          description: channelInfo.description,
+          thumbnail: channelInfo.thumbnail,
+          webpage_url: channelInfo.webpage_url,
+          subscriber_count: channelInfo.subscriber_count,
+          video_count: channelInfo.video_count,
+          _type: channelInfo._type
+        },
+        videos: recentVideos,
+        stats: {
+          totalVideosFound: recentVideos.length,
+          processingTime: duration + 's',
+          success: true
+        }
+      };
+      
+      console.log('✅ PROCESSO COMPLETO BEM-SUCEDIDO!');
+      console.log('═'.repeat(60));
+      console.log(`📺 Canal: ${result.channel.name}`);
+      console.log(`🆔 ID: ${result.channel.id}`);
+      console.log(`🎥 Vídeos encontrados: ${result.stats.totalVideosFound}`);
+      console.log(`⏱️  Tempo total: ${result.stats.processingTime}`);
+      console.log('═'.repeat(60));
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Erro no processo combinado canal + vídeos:', error.message);
+      throw new Error(`Falha ao obter dados completos do canal: ${error.message}`);
     }
   }
 }
