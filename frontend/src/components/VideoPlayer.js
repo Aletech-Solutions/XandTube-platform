@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { useSettings } from '../contexts/SettingsContext';
+import { getAbsoluteBackendUrl } from '../utils/urlUtils';
 import { 
   FaPlay, 
   FaPause, 
@@ -536,15 +537,9 @@ const VideoPlayer = ({ video }) => {
   // Timer para esconder controles
   const hideControlsTimer = useRef(null);
 
-  // Função para construir URL absoluta
+  // Função para construir URL absoluta (garantindo backend na porta 3001)
   const getAbsoluteUrl = (url) => {
-    if (!url) return null;
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('/')) {
-      const baseUrl = process.env.REACT_APP_API_URL || 'http://192.168.3.46:3001';
-      return `${baseUrl}${url}`;
-    }
-    return url;
+    return getAbsoluteBackendUrl(url);
   };
 
   useEffect(() => {

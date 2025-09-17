@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useSettings } from '../contexts/SettingsContext';
+import { fixThumbnailUrl } from '../utils/urlUtils';
 import Avatar from './Avatar';
 
 const CardContainer = styled.div`
@@ -164,7 +165,7 @@ function VideoCard({ video }) {
       <StyledLink to={`/watch-download/${video.id}`}>
         <ThumbnailContainer>
           <Thumbnail 
-            src={video.thumbnail} 
+            src={fixThumbnailUrl(video.thumbnail, video.id)} 
             alt={video.title}
             onError={(e) => {
               e.target.src = 'https://via.placeholder.com/320x180/333333/ffffff?text=XandTube';

@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fa';
 import api from '../services/api';
 import AppHeader from '../components/Header';
+import { fixThumbnailUrl } from '../utils/urlUtils';
 import Sidebar from '../components/Sidebar';
 import Avatar from '../components/Avatar';
 import ChannelBanner from '../components/ChannelBanner';
@@ -641,7 +642,7 @@ function ChannelDetailsPage() {
                       >
                         <VideoThumbnail>
                           <img 
-                            src={video.thumbnail || '/placeholder-video.jpg'} 
+                            src={fixThumbnailUrl(video.thumbnail, video.id) || '/placeholder-video.jpg'} 
                             alt={video.title}
                           />
                           <div className="play-overlay">

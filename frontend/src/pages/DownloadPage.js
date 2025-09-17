@@ -9,6 +9,7 @@ import api from '../services/api';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useSettings } from '../contexts/SettingsContext';
+import { fixThumbnailUrl } from '../utils/urlUtils';
 
 const spin = keyframes`
   0% { transform: rotate(0deg); }
@@ -1311,7 +1312,7 @@ function DownloadPage() {
               <VideoList>
                 {videoInfo.videos.map((video, index) => (
                   <VideoItem key={video.id}>
-                    <img src={video.thumbnail} alt={video.title} />
+                    <img src={fixThumbnailUrl(video.thumbnail, video.id)} alt={video.title} />
                     <div>
                       <h4>{index + 1}. {video.title}</h4>
                       <p>{t('duration')}: {formatDuration(video.duration)}</p>

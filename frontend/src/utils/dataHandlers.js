@@ -1,4 +1,5 @@
 // Utilitários para tratamento de dados ausentes
+import { fixThumbnailUrl } from './urlUtils';
 
 export const handleMissingData = {
   // Tratamento para vídeos ausentes
@@ -25,7 +26,7 @@ export const handleMissingData = {
       ...video,
       title: video.title || 'Título não disponível',
       description: video.description || 'Sem descrição disponível',
-      thumbnail: video.thumbnail || 'https://via.placeholder.com/320x180/333333/ffffff?text=XandTube',
+      thumbnail: fixThumbnailUrl(video.thumbnail, video.id) || 'https://via.placeholder.com/320x180/333333/ffffff?text=XandTube',
       duration: video.duration || '0:00',
       views: video.views || 0,
       likes: video.likes || 0,

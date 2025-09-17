@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { useSettings } from '../contexts/SettingsContext';
 import { FaPlay, FaEye, FaClock, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
 import { recommendationsAPI } from '../services/api';
+import { fixThumbnailUrl } from '../utils/urlUtils';
 
 const SidebarContainer = styled.div`
   width: 100%;
@@ -271,7 +272,7 @@ function RecommendationsSidebar({ currentVideoId }) {
 
   const getVideoThumbnail = (video) => {
     if (video.thumbnail) {
-      return video.thumbnail;
+      return fixThumbnailUrl(video.thumbnail, video.id);
     }
     return 'https://via.placeholder.com/120x68/333333/ffffff?text=Video';
   };

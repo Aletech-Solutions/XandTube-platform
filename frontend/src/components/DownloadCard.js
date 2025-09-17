@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaPlay, FaClock, FaFileVideo } from 'react-icons/fa';
 import { downloadsAPI } from '../services/api';
+import { fixThumbnailUrl } from '../utils/urlUtils';
 import { createGradientStyle, getInitials } from '../utils/avatarUtils';
 
 const DownloadCard = ({ download }) => {
@@ -88,7 +89,7 @@ const DownloadCard = ({ download }) => {
       <ThumbnailContainer onClick={handleImageClick} style={imageError ? gradientStyle : {}}>
         {!imageError ? (
           <Thumbnail 
-            src={download.thumbnailUrl || downloadsAPI.thumbnail(download.id)}
+            src={fixThumbnailUrl(download.thumbnailUrl, download.id) || downloadsAPI.thumbnail(download.id)}
             alt={download.title}
             onError={handleImageError}
           />

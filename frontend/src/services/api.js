@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { BACKEND_BASE_URL, getThumbnailUrl, getStreamUrl } from '../utils/urlUtils';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://192.168.3.46:3001/api';
 
@@ -122,8 +123,8 @@ export const downloadsAPI = {
     // Depois escaneia a pasta para recarregar
     return publicAPI.get('/direct-downloads/scan/folder');
   },
-  thumbnail: (id) => `${API_BASE_URL.replace('/api', '')}/api/direct-downloads/${id}/thumbnail`,
-  stream: (id) => `${API_BASE_URL.replace('/api', '')}/api/direct-downloads/${id}/stream`,
+  thumbnail: (id) => getThumbnailUrl(id),
+  stream: (id) => getStreamUrl(id),
   // Métodos de conveniência
   search: (query, page = 1, limit = 20) => {
     return publicAPI.get(`/direct-downloads?search=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);

@@ -6,6 +6,7 @@ import api from '../services/api';
 import VideoCard from '../components/VideoCard';
 import Pagination from '../components/Pagination';
 import { useSettings } from '../contexts/SettingsContext';
+import { fixThumbnailUrl } from '../utils/urlUtils';
 
 const Container = styled.div`
   padding: 24px;
@@ -297,7 +298,7 @@ function NewPage() {
   const formatVideoForCard = (video) => ({
     id: video.id,
     title: video.title,
-    thumbnail: video.thumbnailUrl,
+    thumbnail: fixThumbnailUrl(video.thumbnailUrl, video.id),
     duration: video.duration,
     views: video.viewCount || 0,
     channelName: video.channelName,
