@@ -48,50 +48,22 @@ class YtdlpService {
     return this.getCookieArgs();
   }
 
-  // Constrói argumentos anti-detecção de bot com user agents rotativos (robusto)
-  getAntiDetectionArgs(attempt = 0) {
+  // Argumentos simples e limpos para yt-dlp
+  getSimpleArgs(attempt = 0) {
+    // User agents simples
     const userAgents = [
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0',
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:122.0) Gecko/20100101 Firefox/122.0'
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
     ];
 
     const selectedUA = userAgents[attempt % userAgents.length];
     
-    // Calcular delays progressivos baseados na tentativa
-    const baseDelay = 2;
-    const maxDelay = 5;
-    const progressiveDelay = Math.min(attempt * 2, 8);
-    
     const args = [
       `--user-agent "${selectedUA}"`,
-      '--add-header "Accept-Language:pt-BR,pt;q=0.9,en;q=0.8"',
-      '--add-header "Accept-Encoding:gzip, deflate, br"',
-      '--add-header "DNT:1"',
-      '--add-header "Upgrade-Insecure-Requests:1"',
-      '--add-header "Sec-Fetch-Dest:document"',
-      '--add-header "Sec-Fetch-Mode:navigate"',
-      '--add-header "Sec-Fetch-Site:none"',
-      `--sleep-interval ${baseDelay + progressiveDelay}`,
-      `--max-sleep-interval ${maxDelay + progressiveDelay}`,
-      '--retries 5',
-      '--fragment-retries 5',
-      '--socket-timeout 30',
-      '--geo-bypass',
-      '--no-check-certificate',
-      '--prefer-free-formats'
+      '--sleep-interval 1',
+      '--retries 3'
     ];
-    
-    // Adicionar estratégias específicas para tentativas subsequentes
-    if (attempt > 0) {
-      args.push('--force-ipv4'); // Forçar IPv4 em tentativas subsequentes
-    }
-    
-    if (attempt > 1) {
-      args.push('--source-address 0.0.0.0'); // Tentar IP fonte diferente
-    }
     
     return args.join(' ');
   }
@@ -112,105 +84,69 @@ class YtdlpService {
     return `${baseCommand} ${browserCookieArgs} ${antiDetectionArgs} "${url}"`;
   }
 
-  // Método robusto para executar comandos com múltiplos fallbacks avançados
+  // Método simplificado com estratégias essenciais
   async executeWithFallbacks(baseCommand, url, options = {}) {
     const strategies = [
-      // Estratégia 1: Cookies do banco + Headers avançados
+      // Estratégia 1: Cookies do banco (simples)
       {
-        name: 'Cookies do banco + Headers avançados',
+        name: 'Cookies do banco',
         command: async (attempt) => {
           const cookieArgs = await this.getDatabaseCookieArgs();
           if (cookieArgs) {
-            console.log(`🍪 Tentativa ${attempt + 1}: Usando cookies do banco de dados`);
-            return `${baseCommand} ${cookieArgs} ${this.getAntiDetectionArgs(attempt)} --geo-bypass --geo-bypass-country US "${url}"`;
+            console.log(`🍪 Tentativa ${attempt + 1}: Usando cookies do banco`);
+            return `${baseCommand} ${cookieArgs} "${url}"`;
           }
-          console.log('⚠️ Nenhum cookie válido encontrado no banco de dados');
           return null;
         },
         condition: () => true
       },
       
-      // Estratégia 2: Arquivo cookies.txt (fallback principal)
+      // Estratégia 2: Arquivo cookies.txt
       {
         name: 'Arquivo cookies.txt',
         command: (attempt) => {
           if (this.hasCookies) {
-            console.log(`🍪 Tentativa ${attempt + 1}: Usando arquivo cookies.txt`);
-            return `${baseCommand} --cookies "${this.cookiesPath}" ${this.getAntiDetectionArgs(attempt)} --geo-bypass --geo-bypass-country BR "${url}"`;
+            console.log(`📁 Tentativa ${attempt + 1}: Usando arquivo cookies.txt`);
+            return `${baseCommand} --cookies "${this.cookiesPath}" "${url}"`;
           }
-          console.log('⚠️ Arquivo cookies.txt não encontrado');
           return null;
         },
         condition: () => this.hasCookies
       },
       
-      // Estratégia 3: Chrome cookies + IPv6
+      // Estratégia 3: Cookies do navegador
       {
-        name: 'Chrome cookies + IPv6',
+        name: 'Cookies do Chrome',
         command: (attempt) => {
           console.log(`🌐 Tentativa ${attempt + 1}: Usando cookies do Chrome`);
-          return `${baseCommand} --cookies-from-browser chrome ${this.getAntiDetectionArgs(attempt)} --force-ipv6 --geo-bypass "${url}"`;
+          return `${baseCommand} --cookies-from-browser chrome "${url}"`;
         },
         condition: () => true
       },
       
-      // Estratégia 4: Firefox cookies + diferentes headers
+      // Estratégia 4: Extrator alternativo (TV)
       {
-        name: 'Firefox cookies + UA rotativo',
+        name: 'Extrator TV',
         command: (attempt) => {
-          console.log(`🦊 Tentativa ${attempt + 1}: Usando cookies do Firefox`);
-          return `${baseCommand} --cookies-from-browser firefox ${this.getAntiDetectionArgs(attempt)} --geo-bypass-country GB "${url}"`;
+          console.log(`📺 Tentativa ${attempt + 1}: Usando extractor TV`);
+          return `${baseCommand} --extractor-args "youtube:player_client=tv" "${url}"`;
         },
         condition: () => true
       },
       
-      // Estratégia 5: Edge + bypass geográfico
+      // Estratégia 5: Comando minimalista
       {
-        name: 'Edge + Bypass geográfico',
+        name: 'Minimalista',
         command: (attempt) => {
-          console.log(`🔷 Tentativa ${attempt + 1}: Usando cookies do Edge`);
-          return `${baseCommand} --cookies-from-browser edge ${this.getAntiDetectionArgs(attempt)} --geo-bypass-country CA "${url}"`;
+          console.log(`⚡ Tentativa ${attempt + 1}: Comando básico`);
+          return `yt-dlp --dump-json --no-warnings "${url}"`;
         },
-        condition: () => true
-      },
-      
-      // Estratégia 6: Método embebido (para vídeos restritos)
-      {
-        name: 'Método embebido',
-        command: (attempt) => {
-          console.log(`🔗 Tentativa ${attempt + 1}: Usando método embebido com referrer`);
-          return `${baseCommand} ${this.getAntiDetectionArgs(attempt)} --referer "https://www.google.com/" --add-header "X-Forwarded-For:8.8.8.8" "${url}"`;
-        },
-        condition: () => true
-      },
-      
-      // Estratégia 7: Método idade verificada
-      {
-        name: 'Bypass verificação idade',
-        command: (attempt) => {
-          console.log(`🔞 Tentativa ${attempt + 1}: Usando bypass de verificação de idade`);
-          return `${baseCommand} ${this.getAntiDetectionArgs(attempt)} --age-limit 999 --geo-bypass --add-header "Cookie:PREF=f1=50000000" "${url}"`;
-        },
-        condition: () => true
-      },
-      
-      // Estratégia 7: Método de extrator genérico
-      {
-        name: 'Extrator genérico',
-        command: (attempt) => `${baseCommand} --extractor-args "youtube:player_client=web" ${this.getAntiDetectionArgs(attempt)} "${url}"`,
-        condition: () => true
-      },
-      
-      // Estratégia 8: Último recurso - comando simples com delay longo
-      {
-        name: 'Último recurso (delay longo)',
-        command: (attempt) => `${baseCommand} --sleep-interval 10 --max-sleep-interval 15 --retries 5 "${url}"`,
         condition: () => true
       }
     ];
 
     let attemptCount = 0;
-    const maxAttempts = strategies.length * 2; // Permite algumas repetições com diferentes UAs
+    const maxAttempts = strategies.length; // 5 estratégias essenciais
     
     while (attemptCount < maxAttempts) {
       const strategy = strategies[attemptCount % strategies.length];
@@ -353,6 +289,21 @@ class YtdlpService {
         '🛡️ Verifique firewall/proxy'
       ];
       analysis.delayTime = 10000;
+    }
+    
+    // Problemas de parsing JSON ou player response
+    else if (errorMessage.includes('Failed to parse JSON') || errorMessage.includes('JSONDecodeError') || 
+             errorMessage.includes('Expecting value') || errorMessage.includes('Failed to extract any player response')) {
+      analysis.type = 'ERRO_EXTRAÇÃO_YOUTUBE';
+      analysis.description = 'YouTube mudou API ou bloqueou extração';
+      analysis.suggestions = [
+        '🔄 Tente diferentes extractors (tv, mweb)',
+        '🆙 Atualize yt-dlp: yt-dlp -U',
+        '🌐 Use VPN ou mude IP',
+        '⏰ Aguarde - YouTube pode estar instável',
+        '🍪 Verifique se cookies são válidos'
+      ];
+      analysis.delayTime = 8000;
     }
     
     // Problemas com extrator
