@@ -4,7 +4,7 @@ This documentation describes all available endpoints in the XandTube API.
 
 ## Base URL
 ```
-http://localhost:3001/api
+http://192.168.3.46:3001/api
 ```
 
 ## Supported Formats

@@ -44,7 +44,7 @@
 
 4. Test debug endpoint:
    ```bash
-   curl "http://localhost:3001/api/download/test?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ" \
+   curl "http://192.168.3.46:3001/api/download/test?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ" \
      -H "Authorization: Bearer YOUR_TOKEN"
    ```
 

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "XandTube API v2",
-    "description": "API completa do XandTube - Clone do YouTube com autenticação e download\n\nEsta coleção contém todos os endpoints disponíveis na API do XandTube v2.\n\n**Base URL:** http://localhost:3001/api\n\n**Novas Funcionalidades v2:**\n- Sistema de autenticação JWT\n- Download de vídeos do YouTube com YT-DLP\n- Progresso em tempo real via WebSocket\n- Banco de dados SQLite com Sequelize\n- Models relacionais completos\n\n**Funcionalidades existentes:**\n- Gerenciamento de vídeos (CRUD)\n- Gerenciamento de canais (CRUD)\n- Sistema de comentários\n- Upload de arquivos\n- Likes e dislikes\n- Inscrições em canais\n\n**Versão:** 2.0.0",
+    "description": "API completa do XandTube - Clone do YouTube com autenticação e download\n\nEsta coleção contém todos os endpoints disponíveis na API do XandTube v2.\n\n**Base URL:** http://192.168.3.46:3001/api\n\n**Novas Funcionalidades v2:**\n- Sistema de autenticação JWT\n- Download de vídeos do YouTube com YT-DLP\n- Progresso em tempo real via WebSocket\n- Banco de dados SQLite com Sequelize\n- Models relacionais completos\n\n**Funcionalidades existentes:**\n- Gerenciamento de vídeos (CRUD)\n- Gerenciamento de canais (CRUD)\n- Sistema de comentários\n- Upload de arquivos\n- Likes e dislikes\n- Inscrições em canais\n\n**Versão:** 2.0.0",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -957,7 +957,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3001/api",
+      "value": "http://192.168.3.46:3001/api",
       "type": "string"
     },
     {

@@ -938,7 +938,7 @@ function DownloadPage() {
 
   // Conecta WebSocket para progresso em tempo real
   const connectWebSocket = (downloadId) => {
-    const wsUrl = `ws://localhost:3001`;
+    const wsUrl = `ws://192.168.3.46:3001`;
     wsRef.current = new WebSocket(wsUrl);
 
     wsRef.current.onopen = () => {

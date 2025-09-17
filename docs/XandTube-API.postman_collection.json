@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "XandTube API",
-    "description": "API completa do XandTube - Clone do YouTube\n\nEsta coleção contém todos os endpoints disponíveis na API do XandTube, incluindo operações para vídeos, canais e comentários.\n\n**Base URL:** http://localhost:3001/api\n\n**Funcionalidades:**\n- Gerenciamento de vídeos (CRUD)\n- Gerenciamento de canais (CRUD)\n- Sistema de comentários\n- Upload de arquivos\n- Likes e dislikes\n- Inscrições em canais\n\n**Versão:** 1.0.0",
+    "description": "API completa do XandTube - Clone do YouTube\n\nEsta coleção contém todos os endpoints disponíveis na API do XandTube, incluindo operações para vídeos, canais e comentários.\n\n**Base URL:** http://192.168.3.46:3001/api\n\n**Funcionalidades:**\n- Gerenciamento de vídeos (CRUD)\n- Gerenciamento de canais (CRUD)\n- Sistema de comentários\n- Upload de arquivos\n- Likes e dislikes\n- Inscrições em canais\n\n**Versão:** 1.0.0",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -883,7 +883,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3001/api",
+      "value": "http://192.168.3.46:3001/api",
       "type": "string"
     },
     {

@@ -14,6 +14,19 @@ downloads-cache.json
 # Production builds
 build/
 dist/
+backend/cookies
+cookies.txt
+database_backup.sql
+database
+database.sqlite
+videos/downloads
+downloads-cache.json
+
+/backend/database.sqlite
+/backend/database.sqlite-shm
+/backend/database.sqlite-wal
+/backend/videos/downloads
+/backend/videos/metadata
 
 # Environment variables
 .env

@@ -91,7 +91,7 @@ cd frontend
 npm install
 
 # Create .env file (if needed)
-echo "REACT_APP_API_URL=http://localhost:3001/api" > .env
+echo "REACT_APP_API_URL=http://192.168.3.46:3001/api" > .env
 ```
 
 ## 🏃‍♂️ Running the Project
@@ -102,7 +102,7 @@ cd backend
 npm run dev
 ```
 
-The backend will start at http://localhost:3001 with:
+The backend will start at http://192.168.3.46:3001 with:
 - REST API
 - WebSocket for download progress
 - SQLite database
@@ -221,7 +221,7 @@ VIDEOS_PATH=../videos
 
 ### Frontend (.env)
 ```env
-REACT_APP_API_URL=http://localhost:3001/api
+REACT_APP_API_URL=http://192.168.3.46:3001/api
 ```
 
 ## 🚨 Security

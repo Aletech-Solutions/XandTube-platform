@@ -109,7 +109,7 @@ npm run test:download
 npm run test:playlist
 
 # Check API health
-curl http://localhost:3001/api/health
+curl http://192.168.3.46:3001/api/health
 ```
 
 ### 🎯 Download Features

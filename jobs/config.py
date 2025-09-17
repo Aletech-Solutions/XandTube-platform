@@ -45,7 +45,7 @@ class Config:
     METADATA_PATH = os.getenv('METADATA_PATH', '../videos/metadata')
     
     # API Configuration
-    API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:3001/api')
+    API_BASE_URL = os.getenv('API_BASE_URL', 'http://192.168.3.46:3001/api')
     API_TIMEOUT = 30  # seconds
     
     # Error Handling

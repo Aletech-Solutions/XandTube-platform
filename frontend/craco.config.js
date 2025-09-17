@@ -22,7 +22,7 @@ module.exports = {
     // Proxy para o backend
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://192.168.3.46:3001',
         changeOrigin: true,
         secure: false,
       },
