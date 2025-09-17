@@ -230,11 +230,31 @@ router.get('/:videoId', async (req, res) => {
         status: 'completed'
       },
       order: [['downloadedAt', 'DESC']],
-      limit: 100 // Limitar para performance
+      limit: 100, // Limitar para performance
+      attributes: [
+        'id', 'youtubeId', 'title', 'description', 'duration',
+        'channelName', 'channelId', 'downloadedAt', 'category', 'metadata',
+        'fileSize', 'resolution', 'format', 'quality', 'originalUrl', 'thumbnailPath'
+      ]
     });
     
     console.log(`📊 Encontrados ${otherVideos.length} outros vídeos para análise`);
     
+    // Função para formatar tamanho de arquivo
+    const formatFileSize = (bytes) => {
+      if (!bytes) return 'N/A';
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      let size = bytes;
+      let unitIndex = 0;
+      
+      while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex++;
+      }
+      
+      return `${size.toFixed(1)} ${units[unitIndex]}`;
+    };
+
     // Calcular scores de similaridade
     const videosWithScores = otherVideos.map(video => ({
       id: video.id,
@@ -247,7 +267,17 @@ router.get('/:videoId', async (req, res) => {
       downloadedAt: video.downloadedAt,
       category: video.category,
       metadata: video.metadata,
+      // Campos adicionais para compatibilidade com frontend
+      videoUrl: `/api/direct-downloads/${video.id}/stream`,
+      thumbnailUrl: video.thumbnailPath ? `/api/direct-downloads/${video.id}/thumbnail` : null,
       thumbnail: `/api/direct-downloads/${video.id}/thumbnail`,
+      fileSizeFormatted: formatFileSize(video.fileSize),
+      fileSize: video.fileSize,
+      resolution: video.resolution,
+      format: video.format,
+      quality: video.quality,
+      originalUrl: video.originalUrl,
+      viewCount: video.metadata?.view_count || 0,
       views: video.metadata?.view_count || 0,
       similarityScore: calculateSimilarityFromDB(currentVideo, video)
     }));
@@ -291,6 +321,21 @@ router.get('/', async (req, res) => {
     
     console.log('🔥 Buscando vídeos populares para recomendações gerais');
     
+    // Função para formatar tamanho de arquivo
+    const formatFileSize = (bytes) => {
+      if (!bytes) return 'N/A';
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      let size = bytes;
+      let unitIndex = 0;
+      
+      while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex++;
+      }
+      
+      return `${size.toFixed(1)} ${units[unitIndex]}`;
+    };
+
     // Buscar vídeos mais recentes do banco de dados
     const popularVideos = await Download.findAll({
       where: {
@@ -303,7 +348,8 @@ router.get('/', async (req, res) => {
       limit: parseInt(limit),
       attributes: [
         'id', 'youtubeId', 'title', 'description', 'duration',
-        'channelName', 'channelId', 'downloadedAt', 'category', 'metadata'
+        'channelName', 'channelId', 'downloadedAt', 'category', 'metadata',
+        'fileSize', 'resolution', 'format', 'quality', 'originalUrl', 'thumbnailPath'
       ]
     });
     
@@ -321,7 +367,17 @@ router.get('/', async (req, res) => {
       downloadedAt: video.downloadedAt,
       category: video.category,
       metadata: video.metadata,
+      // Campos adicionais para compatibilidade com frontend
+      videoUrl: `/api/direct-downloads/${video.id}/stream`,
+      thumbnailUrl: video.thumbnailPath ? `/api/direct-downloads/${video.id}/thumbnail` : null,
       thumbnail: `/api/direct-downloads/${video.id}/thumbnail`,
+      fileSizeFormatted: formatFileSize(video.fileSize),
+      fileSize: video.fileSize,
+      resolution: video.resolution,
+      format: video.format,
+      quality: video.quality,
+      originalUrl: video.originalUrl,
+      viewCount: video.metadata?.view_count || 0,
       views: video.metadata?.view_count || 0
     }));
     
